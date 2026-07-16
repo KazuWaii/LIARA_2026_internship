@@ -1,0 +1,327 @@
+INSTALLATION ROS 2 HUMBLE POUR LE LIDAR UNITREE L2
+Ubuntu 22.04 LTS - Liaison série USB - VMware
+
+============================================================
+1. PRÉREQUIS
+============================================================
+
+Système recommandé :
+- Ubuntu 22.04 LTS 64 bits
+- Connexion Internet
+- Accès sudo
+- LiDAR Unitree 4D LiDAR L2 configuré en mode série
+- Périphérique USB du LiDAR connecté à la VM
+
+Dans VMware :
+VM > Removable Devices > périphérique USB du LiDAR
+> Connect (Disconnect from Host)
+
+Vérifier la version d'Ubuntu :
+
+lsb_release -ds
+uname -m
+
+Résultat attendu :
+Ubuntu 22.04.x LTS
+x86_64
+
+
+============================================================
+2. METTRE UBUNTU À JOUR
+============================================================
+
+sudo apt update
+sudo apt upgrade -y
+
+
+============================================================
+3. AJOUTER LE DÉPÔT OFFICIEL ROS 2
+============================================================
+
+Installer les outils nécessaires :
+
+sudo apt install -y software-properties-common curl
+sudo add-apt-repository -y universe
+sudo apt update
+
+Télécharger le paquet officiel de configuration du dépôt ROS :
+
+export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F'"' '{print $4}')
+
+curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+
+Installer le dépôt :
+
+sudo dpkg -i /tmp/ros2-apt-source.deb
+sudo apt update
+sudo apt upgrade -y
+
+
+============================================================
+4. INSTALLER ROS 2 HUMBLE ET LES LIBRAIRIES
+============================================================
+
+Installer ROS 2 Desktop, RViz2, les outils de compilation et PCL :
+
+sudo apt install -y   ros-humble-desktop   ros-dev-tools   python3-colcon-common-extensions   python3-rosdep   git   cmake   build-essential   libpcl-dev   ros-humble-rclcpp   ros-humble-std-msgs   ros-humble-sensor-msgs   ros-humble-geometry-msgs   ros-humble-tf2-ros   ros-humble-pcl-conversions   ros-humble-pcl-ros
+
+Activer ROS 2 dans le terminal courant :
+
+source /opt/ros/humble/setup.bash
+
+Activer automatiquement ROS 2 dans les futurs terminaux :
+
+grep -qxF 'source /opt/ros/humble/setup.bash' ~/.bashrc || echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc
+
+Vérifier l'installation :
+
+printenv ROS_DISTRO
+ros2 --help
+rviz2 --help
+
+ROS_DISTRO doit afficher :
+
+humble
+
+
+============================================================
+5. INITIALISER ROSDEP
+============================================================
+
+Initialiser rosdep uniquement si nécessaire :
+
+if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
+  sudo rosdep init
+fi
+
+Mettre à jour sa base de dépendances :
+
+rosdep update
+
+
+============================================================
+6. AUTORISER L'ACCÈS AU PORT SÉRIE
+============================================================
+
+Ajouter l'utilisateur au groupe dialout :
+
+sudo usermod -aG dialout "$USER"
+
+Redémarrer Ubuntu pour appliquer les permissions :
+
+sudo reboot
+
+Après le redémarrage, reconnecter le périphérique USB dans VMware.
+
+Vérifier le port série :
+
+ls -l /dev/ttyACM* /dev/ttyUSB* 2>/dev/null
+groups
+
+Le port attendu est généralement :
+
+/dev/ttyACM0
+
+Le groupe dialout doit apparaître dans la commande groups.
+
+
+============================================================
+7. TÉLÉCHARGER LE SDK UNITREE L2
+============================================================
+
+cd ~
+git clone https://github.com/unitreerobotics/unilidar_sdk2.git
+
+Vérifier le contenu :
+
+ls ~/unilidar_sdk2
+
+Le dépôt doit contenir notamment :
+
+unitree_lidar_sdk
+unitree_lidar_ros2
+
+
+============================================================
+8. CONFIGURER LE PAQUET ROS 2 EN MODE SÉRIE
+============================================================
+
+Le fichier de configuration est :
+
+~/unilidar_sdk2/unitree_lidar_ros2/src/unitree_lidar_ros2/launch/launch.py
+
+Créer une sauvegarde :
+
+cp ~/unilidar_sdk2/unitree_lidar_ros2/src/unitree_lidar_ros2/launch/launch.py ~/unilidar_sdk2/unitree_lidar_ros2/src/unitree_lidar_ros2/launch/launch.py.bak
+
+Passer de la communication Ethernet à la communication série :
+
+sed -i "s/{'initialize_type': 2}/{'initialize_type': 1}/" ~/unilidar_sdk2/unitree_lidar_ros2/src/unitree_lidar_ros2/launch/launch.py
+
+sed -i "s/{'work_mode': 0}/{'work_mode': 8}/" ~/unilidar_sdk2/unitree_lidar_ros2/src/unitree_lidar_ros2/launch/launch.py
+
+Vérifier les paramètres :
+
+grep -nE "initialize_type|work_mode|serial_port|baudrate" ~/unilidar_sdk2/unitree_lidar_ros2/src/unitree_lidar_ros2/launch/launch.py
+
+Paramètres attendus :
+
+initialize_type = 1
+work_mode = 8
+serial_port = /dev/ttyACM0
+baudrate = 4000000
+
+Si le périphérique apparaît sous /dev/ttyACM1, modifier serial_port
+dans launch.py.
+
+
+============================================================
+9. INSTALLER LES DÉPENDANCES DU PAQUET UNITREE
+============================================================
+
+source /opt/ros/humble/setup.bash
+cd ~/unilidar_sdk2/unitree_lidar_ros2
+
+rosdep install --from-paths src --ignore-src -r -y
+
+
+============================================================
+10. COMPILER LE PAQUET ROS 2 UNITREE
+============================================================
+
+cd ~/unilidar_sdk2/unitree_lidar_ros2
+source /opt/ros/humble/setup.bash
+
+colcon build --symlink-install
+
+Résultat attendu :
+
+Summary: 1 package finished
+
+
+============================================================
+11. LANCER LE LIDAR ET RVIZ2
+============================================================
+
+Vérifier qu'aucun autre programme n'utilise /dev/ttyACM0.
+
+Lancer le paquet :
+
+cd ~/unilidar_sdk2/unitree_lidar_ros2
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+ros2 launch unitree_lidar_ros2 launch.py
+
+RViz2 doit s'ouvrir et afficher le nuage de points.
+
+
+============================================================
+12. VÉRIFIER LES TOPICS ROS 2
+============================================================
+
+Ouvrir un deuxième terminal :
+
+source /opt/ros/humble/setup.bash
+source ~/unilidar_sdk2/unitree_lidar_ros2/install/setup.bash
+
+ros2 topic list
+
+Topics attendus :
+
+/unilidar/cloud
+/unilidar/imu
+
+Vérifier la fréquence des données :
+
+ros2 topic hz /unilidar/cloud
+ros2 topic hz /unilidar/imu
+
+Afficher les informations du nuage :
+
+ros2 topic info -v /unilidar/cloud
+
+
+============================================================
+13. PROBLÈMES COURANTS
+============================================================
+
+A. Le port /dev/ttyACM0 n'existe pas
+
+- Reconnecter le périphérique USB à la VM dans VMware.
+- Vérifier avec :
+
+lsusb
+ls -l /dev/ttyACM* /dev/ttyUSB* 2>/dev/null
+sudo dmesg | tail -n 30
+
+
+B. Erreur "Permission denied"
+
+Vérifier :
+
+groups
+ls -l /dev/ttyACM0
+
+Solution permanente :
+
+sudo usermod -aG dialout "$USER"
+sudo reboot
+
+Solution temporaire de test :
+
+sudo chmod 666 /dev/ttyACM0
+
+
+C. Le port est déjà utilisé
+
+sudo lsof /dev/ttyACM0
+sudo fuser -v /dev/ttyACM0
+
+Fermer l'exemple C++ du SDK, un autre nœud ROS ou tout logiciel
+Windows utilisant le LiDAR.
+
+
+D. RViz2 est noir ou plante dans VMware
+
+Tester le rendu logiciel :
+
+cd ~/unilidar_sdk2/unitree_lidar_ros2
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+LIBGL_ALWAYS_SOFTWARE=1 ros2 launch unitree_lidar_ros2 launch.py
+
+
+E. La compilation échoue
+
+Nettoyer puis recompiler :
+
+cd ~/unilidar_sdk2/unitree_lidar_ros2
+rm -rf build install log
+source /opt/ros/humble/setup.bash
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --symlink-install
+
+
+============================================================
+14. COMMANDES DE LANCEMENT POUR LES UTILISATIONS SUIVANTES
+============================================================
+
+À chaque nouvelle session :
+
+cd ~/unilidar_sdk2/unitree_lidar_ros2
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch unitree_lidar_ros2 launch.py
+
+
+============================================================
+SOURCES
+============================================================
+
+Documentation ROS 2 Humble :
+https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html
+
+SDK officiel Unitree L2 :
+https://github.com/unitreerobotics/unilidar_sdk2
