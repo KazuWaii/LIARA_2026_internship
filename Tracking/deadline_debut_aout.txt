@@ -1,4 +1,4 @@
-   comprendre le lidar : voir les distance, les résolutions de la personne, 
+   comprendre le lidar : voir les distances, les résolutions de la personne, 
    exploration de la tranformation de donnéees en image de profondeur, prototype code simple, travailler avec le sdk (nb de points dispo par ex)
    
    
