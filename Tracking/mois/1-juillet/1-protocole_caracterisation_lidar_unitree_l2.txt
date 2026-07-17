@@ -1,0 +1,180 @@
+PROTOCOLE SIMPLE DE CARACTÉRISATION DU LIDAR UNITREE L2
+
+Objectif :
+Évaluer la visibilité et la résolution d'une personne selon sa distance, son orientation et les occlusions.
+
+============================================================
+1. PRÉPARER L'INSTALLATION
+============================================================
+
+- Fixer le LiDAR à une position stable.
+- Ne plus modifier sa hauteur ni son orientation pendant les essais.
+- Marquer au sol les distances suivantes :
+
+1 m
+2 m
+3 m
+4 m
+5 m
+
+- Conserver les mêmes paramètres dans RViz :
+  - même point de vue ;
+  - même zoom ;
+  - même taille de points ;
+  - même mode de couleur ;
+  - même durée d'accumulation.
+
+============================================================
+2. ENREGISTRER LA SCÈNE VIDE
+============================================================
+
+- Retirer toute personne de la zone.
+- Lancer le LiDAR dans ROS 2.
+- Prendre une capture d'écran dans RViz.
+- Enregistrer environ 10 secondes de données :
+
+ros2 bag record -o scene_vide /unilidar/cloud /unilidar/imu
+
+- Arrêter avec Ctrl + C.
+
+Cette scène servira de référence pour isoler ensuite la personne.
+
+============================================================
+3. RÉALISER LES PREMIERS ESSAIS
+============================================================
+
+Pour chaque distance :
+
+1 m
+3 m
+5 m
+
+Réaliser d'abord la configuration suivante :
+
+- personne immobile ;
+- debout ;
+- face au LiDAR.
+
+Pour chaque essai :
+
+1. Placer la personne sur la marque au sol.
+2. Vérifier qu'elle reste immobile.
+3. Prendre une capture d'écran dans RViz.
+4. Enregistrer environ 10 secondes de données.
+
+Exemple pour 3 m :
+
+ros2 bag record -o personne_3m_face /unilidar/cloud /unilidar/imu
+
+5. Arrêter avec Ctrl + C.
+6. Noter les informations de l'essai.
+
+============================================================
+4. INFORMATIONS À NOTER
+============================================================
+
+Pour chaque enregistrement, noter :
+
+- nom de l'essai ;
+- distance réelle ;
+- orientation de la personne ;
+- posture ;
+- présence ou non d'une occlusion ;
+- hauteur du LiDAR ;
+- durée d'enregistrement ;
+- paramètres du SDK ;
+- remarques particulières.
+
+============================================================
+5. ANALYSE VISUELLE
+============================================================
+
+Pour chaque capture RViz, observer :
+
+- la personne est-elle visible ?
+- la silhouette est-elle reconnaissable ?
+- la tête est-elle visible ?
+- les bras sont-ils séparés du torse ?
+- les jambes sont-elles distinguables ?
+- certaines parties du corps sont-elles absentes ?
+- des points parasites sont-ils présents ?
+
+Attribuer un score visuel :
+
+0 : personne non visible
+1 : présence détectable, silhouette inexploitable
+2 : silhouette partielle
+3 : silhouette globalement identifiable
+4 : bonne représentation corporelle
+5 : représentation très détaillée
+
+============================================================
+6. MÉTRIQUES À EXTRAIRE
+============================================================
+
+Pour chaque essai, calculer ensuite :
+
+- nombre total de points par nuage ;
+- nombre de points appartenant à la personne ;
+- pourcentage de points appartenant à la personne ;
+- distance moyenne et médiane de la personne ;
+- écart-type de la distance ;
+- hauteur, largeur et profondeur de la boîte 3D ;
+- nombre de pixels occupés dans l'image de profondeur ;
+- largeur et hauteur de la personne dans l'image de profondeur.
+
+============================================================
+7. TABLEAU DE RÉSULTATS
+============================================================
+
+Créer un tableau contenant au minimum :
+
+Distance
+Position
+Nombre de points sur la personne
+Nombre de pixels de profondeur
+Hauteur mesurée
+Écart-type de la distance
+Score visuel
+
+============================================================
+8. ÉTENDRE LES ESSAIS
+============================================================
+
+Une fois les essais de face validés, répéter pour :
+
+- personne de profil ;
+- personne de dos ;
+- personne assise ;
+- personne partiellement cachée par une table ou un meuble.
+
+Tester aussi plusieurs durées d'accumulation :
+
+0,2 s
+0,5 s
+1,0 s
+
+============================================================
+9. RÉSULTATS ATTENDUS
+============================================================
+
+Produire au minimum :
+
+- une capture RViz pour chaque configuration ;
+- un ROS bag pour chaque essai ;
+- un tableau comparatif ;
+- une courbe distance / nombre de points sur la personne ;
+- une courbe distance / nombre de pixels de profondeur ;
+- une conclusion sur la distance maximale exploitable ;
+- une conclusion sur l'effet de l'orientation et des occlusions.
+
+============================================================
+ORDRE RECOMMANDÉ
+============================================================
+
+1. Scène vide.
+2. Personne de face à 1 m.
+3. Personne de face à 3 m.
+4. Personne de face à 5 m.
+5. Validation du script de mesure.
+6. Extension aux autres orientations et aux occlusions.
