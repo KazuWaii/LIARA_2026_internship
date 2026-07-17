@@ -12,10 +12,10 @@ Objectif :
 - Marquer au sol les distances suivantes :
 
 1 m
-2 m
 3 m
-4 m
 5 m
+..
+15m (10% reflectivity)
 
 - Conserver les mêmes paramètres dans RViz :
   - même point de vue ;
@@ -33,7 +33,7 @@ Objectif :
 - Prendre une capture d'écran dans RViz.
 - Enregistrer environ 10 secondes de données :
 
-ros2 bag record -o scene_vide /unilidar/cloud /unilidar/imu
+ros2 bag record -o scene_vide /unilidar/cloud /unilidar/imu --max-bag-duration 10
 
 - Arrêter avec Ctrl + C.
 
