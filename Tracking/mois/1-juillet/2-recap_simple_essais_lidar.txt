@@ -1,0 +1,21 @@
+AVANCÉES — ESSAIS LIDAR UNITREE L2
+
+
+
+
+Une scène de référence sans personne a été enregistrée
+
+Commande ENREGISTRER :
+ros2 bag record -o scene_vide /unilidar/cloud /unilidar/imu
+
+
+
+
+
+Les ROS bags ont été rejoués et affichés dans RViz2
+
+Commande terminal 1 LANCER RVIZ :
+rviz2   -d ~/unilidar_sdk2/unitree_lidar_ros2/src/unitree_lidar_ros2/rviz/view.rviz   --ros-args -p use_sim_time:=true
+
+Commande terminal 2 JOUER ENREGISTREMENT :
+ros2 bag play ~/LIARA_2026_internship/lidar-src/lidar-exploration/personne_piece1_centre/ --clock --loop

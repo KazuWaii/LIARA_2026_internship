@@ -1,0 +1,46 @@
+rosbag2_bagfile_information:
+  version: 5
+  storage_identifier: sqlite3
+  duration:
+    nanoseconds: 25250274419
+  starting_time:
+    nanoseconds_since_epoch: 1784309505918380384
+  message_count: 6585
+  topics_with_message_count:
+    - topic_metadata:
+        name: /unilidar/cloud
+        type: sensor_msgs/msg/PointCloud2
+        serialization_format: cdr
+        offered_qos_profiles: "- history: 3\n  depth: 0\n  reliability: 1\n  durability: 2\n  deadline:\n    sec: 9223372036\n    nsec: 854775807\n  lifespan:\n    sec: 9223372036\n    nsec: 854775807\n  liveliness: 1\n  liveliness_lease_duration:\n    sec: 9223372036\n    nsec: 854775807\n  avoid_ros_namespace_conventions: false"
+      message_count: 298
+    - topic_metadata:
+        name: /unilidar/imu
+        type: sensor_msgs/msg/Imu
+        serialization_format: cdr
+        offered_qos_profiles: "- history: 3\n  depth: 0\n  reliability: 1\n  durability: 2\n  deadline:\n    sec: 9223372036\n    nsec: 854775807\n  lifespan:\n    sec: 9223372036\n    nsec: 854775807\n  liveliness: 1\n  liveliness_lease_duration:\n    sec: 9223372036\n    nsec: 854775807\n  avoid_ros_namespace_conventions: false"
+      message_count: 6287
+  compression_format: ""
+  compression_mode: ""
+  relative_file_paths:
+    - personne_piece3_milieu_0.db3
+    - personne_piece3_milieu_1.db3
+    - personne_piece3_milieu_2.db3
+  files:
+    - path: personne_piece3_milieu_0.db3
+      starting_time:
+        nanoseconds_since_epoch: 1784309505918380384
+      duration:
+        nanoseconds: 9995945727
+      message_count: 2609
+    - path: personne_piece3_milieu_1.db3
+      starting_time:
+        nanoseconds_since_epoch: 1784309515919393018
+      duration:
+        nanoseconds: 9998002403
+      message_count: 2606
+    - path: personne_piece3_milieu_2.db3
+      starting_time:
+        nanoseconds_since_epoch: 1784309525922516516
+      duration:
+        nanoseconds: 5246138287
+      message_count: 1370

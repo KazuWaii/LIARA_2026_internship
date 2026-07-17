@@ -1,6 +1,0 @@
-Each point cloud data mainly contains the following information:
-
-	-Distance value: The actual distance between sampling points, in millimeters. Angle: The angle of the 
-sampling point relative to the orientation of the L2 itself, in degrees. Reflectivity: The reflectivity of 
-the detected object.
-	-IMU data: Data of 3 - axis accelerometer and 3 - axis gyroscope
