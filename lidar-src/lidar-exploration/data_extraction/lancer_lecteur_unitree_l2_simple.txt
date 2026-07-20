@@ -1,0 +1,84 @@
+LANCER LE SCRIPT SIMPLE DU UNITREE L2
+=====================================
+
+Fichier Python : lecteur_unitree_l2_simple.py
+
+
+1. VERIFIER LES DEPENDANCES
+---------------------------
+
+Le script utilise ROS 2, sensor_msgs_py et NumPy.
+
+Si necessaire :
+
+sudo apt install ros-humble-sensor-msgs-py python3-numpy
+
+
+2. LIRE LES DONNEES D'UN BAG ROS 2
+----------------------------------
+
+Ouvrir un premier terminal :
+
+source /opt/ros/humble/setup.bash
+ros2 bag play /chemin/vers/le/dossier_du_bag --loop
+
+Le chemin doit designer le dossier contenant metadata.yaml et les fichiers
+.db3 du bag.
+
+
+3. LANCER LE SCRIPT
+-------------------
+
+Ouvrir un deuxieme terminal :
+
+source /opt/ros/humble/setup.bash
+cd /chemin/vers/le/script
+python3 lecteur_unitree_l2_simple.py
+
+Le programme ecoute le sujet :
+
+/unilidar/cloud
+
+Il affiche le nombre de points ainsi que les valeurs du premier point :
+x, y, z, intensite, anneau et temps relatif.
+
+
+4. UTILISATION AVEC LE LIDAR EN DIRECT
+--------------------------------------
+
+Demarrer d'abord le pilote ROS 2 du Unitree L2.
+Lancer ensuite le script avec la commande de la section 3.
+
+Le meme script fonctionne avec un bag rejoue ou avec le lidar reel.
+
+
+5. VERIFICATIONS UTILES
+-----------------------
+
+Verifier que le sujet existe :
+
+ros2 topic list
+
+Verifier son type :
+
+ros2 topic info /unilidar/cloud
+
+Le type attendu est :
+
+sensor_msgs/msg/PointCloud2
+
+
+6. ARRETER LE PROGRAMME
+-----------------------
+
+Appuyer sur Ctrl+C dans chaque terminal.
+
+
+PROBLEME COURANT
+----------------
+
+Si rien ne s'affiche, verifier que :
+
+- ros2 bag play est encore en cours, ou que le pilote du lidar est demarre ;
+- /unilidar/cloud apparait dans ros2 topic list ;
+- source /opt/ros/humble/setup.bash a ete execute dans chaque terminal.

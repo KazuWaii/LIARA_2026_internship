@@ -1,0 +1,37 @@
+DONNÉES UNITREE L2 ENREGISTRÉES DANS UN FICHIER .DB3
+
+Un fichier .db3 est une base de données SQLite créée par ROS 2 Bag. Il contient
+les messages publiés par les topics ROS 2 pendant l'enregistrement. Un bag peut
+être divisé en plusieurs fichiers .db3, accompagnés d'un fichier metadata.yaml.
+
+Les messages sont stockés sous forme binaire avec la sérialisation CDR. Ils ne
+sont ni chiffrés ni directement présentés comme un tableau de nombres. Ils
+doivent être décodés avec ROS 2 ou avec un script adapté.
+
+Le topic /unilidar/cloud contient les nuages de points au format PointCloud2.
+Chaque point peut notamment fournir :
+
+- x, y et z : position du point en mètres ;
+- intensity : intensité ou réflectivité du retour laser ;
+- ring : identifiant de scan fourni par le pilote ;
+- time : temps relatif du point dans le nuage.
+
+Le message contient aussi le timestamp du nuage, son repère de coordonnées et
+le nombre de points. Les coordonnées x, y et z ont déjà été calculées par le
+pilote Unitree avant leur enregistrement dans le bag.
+
+Le topic /unilidar/imu contient les mesures de la centrale inertielle :
+
+- l'orientation sous forme de quaternion ;
+- la vitesse angulaire sur les axes x, y et z ;
+- l'accélération linéaire sur les axes x, y et z ;
+- les matrices de covariance associées.
+
+Le fichier .db3 contient uniquement les topics choisis au moment de
+l'enregistrement. Les transformations de repères, les données brutes UART ou
+les informations internes du LiDAR ne sont disponibles que si elles ont été
+enregistrées dans des topics dédiés.
+
+Pour utiliser ces données en Python, il faut décoder les messages PointCloud2
+et Imu, puis les convertir en tableaux NumPy. Cette étape donne directement
+accès aux coordonnées, à l'intensité, au temps des points et aux mesures IMU.
