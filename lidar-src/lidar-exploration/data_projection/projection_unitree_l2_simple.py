@@ -19,7 +19,7 @@ HAUTEUR = 36
 LARGEUR = 144
 
 # Nombre de nuages successifs utilises dans chaque projection.
-NOMBRE_NUAGES = 8
+NOMBRE_NUAGES = 6
 
 # Champ de vision vertical utilise pour la projection.
 FOV_HAUT_DEGRES = 90.0
@@ -27,7 +27,7 @@ FOV_BAS_DEGRES = 0.0
 
 # Distances conservees, en metres.
 DISTANCE_MIN = 0.05
-DISTANCE_MAX = 30.0
+DISTANCE_MAX = 5.0
 
 # Nombre maximal de rafraichissements de la fenetre par seconde.
 FREQUENCE_AFFICHAGE = 10.0
@@ -123,7 +123,7 @@ class ProjectionLidar(Node):
             cmap=couleurs,
             vmin=DISTANCE_MIN,
             vmax=DISTANCE_MAX,
-            aspect="auto",
+            aspect="equal",
         )
 
         self.axes.set_title("Image de profondeur Unitree L2")
