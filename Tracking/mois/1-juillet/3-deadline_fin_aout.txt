@@ -1,0 +1,5 @@
+vlm
+vision transformer -> mlp -> llm
+igpa (lecun)
+transfert learning
+lidar utilisés dans la littérature
