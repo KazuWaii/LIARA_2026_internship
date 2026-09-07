@@ -1,0 +1,24 @@
+X_train: (3456, 600)  X_val: (864, 600)
+sujets train: 32 -- GroupKFold(5)
+
+=== SVM (grid: C x gamma x kernel) ===
+Fitting 5 folds for each of 36 candidates, totalling 180 fits
+meilleurs params SVM: {'clf__C': 3.0, 'clf__gamma': 'scale', 'clf__kernel': 'rbf'}  cv_accuracy=0.664
+SVM tune -> VAL accuracy=0.638 precision_macro=0.651 f1_macro=0.635
+
+=== RandomForest (grid) ===
+Fitting 5 folds for each of 72 candidates, totalling 360 fits
+meilleurs params RF: {'clf__max_depth': None, 'clf__max_features': 'log2', 'clf__min_samples_leaf': 2, 'clf__n_estimators': 500}  cv_accuracy=0.612
+RF tune -> VAL accuracy=0.605 precision_macro=0.619 f1_macro=0.601
+
+=== HistGradientBoosting (grid) ===
+Fitting 5 folds for each of 36 candidates, totalling 180 fits
+meilleurs params HGB: {'clf__l2_regularization': 0.0, 'clf__learning_rate': 0.1, 'clf__max_depth': 6, 'clf__max_iter': 400}  cv_accuracy=0.651
+HGB tune -> VAL accuracy=0.649 precision_macro=0.659 f1_macro=0.644
+
+
+=== RESUME (reference sans tuning : SVM=0.617 RF=0.601, cf. README) ===
+svm_tune: cv_acc=0.664  VAL acc=0.638  VAL f1=0.635  params={'clf__C': 3.0, 'clf__gamma': 'scale', 'clf__kernel': 'rbf'}
+rf_tune: cv_acc=0.612  VAL acc=0.605  VAL f1=0.601  params={'clf__max_depth': None, 'clf__max_features': 'log2', 'clf__min_samples_leaf': 2, 'clf__n_estimators': 500}
+hgb_tune: cv_acc=0.651  VAL acc=0.649  VAL f1=0.644  params={'clf__l2_regularization': 0.0, 'clf__learning_rate': 0.1, 'clf__max_depth': 6, 'clf__max_iter': 400}
+TUNER_LAPLACIEN_V2_OK

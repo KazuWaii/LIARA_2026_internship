@@ -1,0 +1,68 @@
+ADAPTATION TEMPORELLE I-JEPA -> V-JEPA (ET CE QU'ON EN REPREND)
+Mathieu Bonneau — 30 août 2026
+
+Référence : Bardes et al., "V-JEPA: Latent Video Prediction for Visual
+Representation Learning", ICLR 2024.
+PDF local : revue-litterature/v-jepa.pdf
+
+
+CE QUI NE CHANGE PAS
+
+Architecture JEPA identique (encodeur contexte / encodeur cible EMA+stop-grad /
+prédicteur), perte L1 sur les positions masquées, aucun mécanisme
+anti-effondrement supplémentaire. Le cœur de JEPA n'a pas eu besoin d'être
+repensé pour la vidéo.
+
+
+CE QUI CHANGE — 3 ADAPTATIONS
+
+1. Tokenisation : patch 2D -> tubelet 3D. Conv 3D (2x16x16, stride temporel 2,
+   stride spatial 16) sur un clip de 16 frames -> positional embedding sin-cos
+   en 3D (2 axes spatiaux + 1 temporel) -> séquence aplatie.
+
+2. Attention "joint space-time" : le transformer attend sur toute la séquence
+   espace-temps aplatie, sans restriction par frame. Aucun tracking explicite
+   entre frames : tout repose sur position embedding + attention complète.
+
+3. Masquage 3D Multi-Block (LE point critique) : mêmes blocs spatiaux
+   contigus que I-JEPA, mais le masque est répété à l'identique sur TOUTE la
+   profondeur temporelle du clip (pas frame par frame). Deux échelles
+   combinées par clip : short-range (8 blocs, taille 0.15) + long-range
+   (2 blocs, taille 0.7), ratio de masquage global ~90%.
+
+   Pourquoi : une vidéo est très redondante dans le temps. Si une région
+   masquée dans une frame reste visible dans les frames voisines, le modèle
+   triche par copie/interpolation au lieu d'apprendre la structure. Ablation
+   du papier (Table 13) : masquage temporel < 100% -> tâche triviale ->
+   performance en aval divisée par ~4-5.
+
+
+CE QU'ON EN REPREND POUR LES SÉQUENCES DE NUAGES DE POINTS
+
+- Masquage plein-temps directement transférable : un bloc cible doit être
+  masqué sur TOUTE la fenêtre temporelle choisie, jamais frame par frame.
+  Nos frames LiDAR consécutives sont probablement aussi redondantes qu'une
+  vidéo (mouvement corporel lent d'une frame à l'autre) -> même risque de
+  triche par copie si le masquage n'est pas plein-temps.
+
+- Le vrai obstacle est la tokenisation, pas le masquage. V-JEPA n'a jamais eu
+  besoin de tracker un patch entre frames car sa grille est fixe (stride de
+  conv identique à chaque frame). Point-JEPA (FPS+kNN) ré-échantillonne des
+  centres différents à chaque frame -> aucune garantie que le patch n°5 en
+  frame t corresponde au patch n°5 en frame t+1. Deux pistes à trancher :
+    a) étendre le séquenceur glouton de Point-JEPA dans le temps pour créer
+       des tubelets suivis explicitement ;
+    b) ne rien tracker, donner à chaque patch un positional embedding
+       (t, x, y, z) et laisser l'attention jointe espace-temps apprendre la
+       correspondance elle-même (plus simple, mais sans la garantie de
+       grille fixe dont bénéficie V-JEPA — à valider empiriquement).
+
+- Perte et anti-effondrement : garder la recette standard (EMA + stop-grad),
+  aucune régularisation additionnelle nécessaire d'après V-JEPA.
+
+
+PROCHAINE ÉTAPE
+
+Trancher entre (a) et (b) ci-dessus avant d'implémenter le masquage
+spatio-temporel ; cf. 3-point_jepa_fondation_projet.txt pour le détail de la
+tokenisation Point-JEPA à étendre.

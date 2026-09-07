@@ -1,0 +1,18 @@
+X_train: (3456, 1536)  X_val: (864, 1536)  sujets_train=32
+
+=== SVM par defaut (C=1.0, reference) ===
+   accuracy=0.946 f1_macro=0.945
+
+=== RandomForest par defaut ===
+   accuracy=0.846 f1_macro=0.843
+
+=== HistGradientBoosting (hyperparametres deja regles pour Laplacien) ===
+   accuracy=0.910 f1_macro=0.908
+
+=== SVM regle (GridSearchCV, GroupKFold sujet) ===
+   meilleurs params={'clf__C': 3.0, 'clf__gamma': 'scale', 'clf__kernel': 'rbf'} cv_acc=0.920 VAL accuracy=0.949 f1_macro=0.949
+
+
+=== RESUME (reference : tete lineaire+pooling appris = 0.934) ===
+SVM defaut: 0.946  RF defaut: 0.846  HGB (hyperparams Laplacien): 0.910  SVM regle: 0.949
+TUNER_POINTMAE_CLASSIQUE_OK

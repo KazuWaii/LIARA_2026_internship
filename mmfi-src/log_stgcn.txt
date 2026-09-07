@@ -1,0 +1,138 @@
+
+=== stgcn_squelette graine=0 ===
+  [stgcn graine=0] etape    0/2000  ce=3.910  precision_val=0.037 f1_macro_val=0.003
+  [stgcn graine=0] etape   50/2000  ce=0.273  precision_val=0.676 f1_macro_val=0.666
+  [stgcn graine=0] etape  100/2000  ce=0.089  precision_val=0.954 f1_macro_val=0.955
+  [stgcn graine=0] etape  150/2000  ce=0.057  precision_val=0.972 f1_macro_val=0.972
+  [stgcn graine=0] etape  200/2000  ce=0.113  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=0] etape  250/2000  ce=0.061  precision_val=0.977 f1_macro_val=0.977
+  [stgcn graine=0] etape  300/2000  ce=0.017  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=0] etape  350/2000  ce=0.005  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=0] etape  400/2000  ce=0.025  precision_val=0.981 f1_macro_val=0.982
+  [stgcn graine=0] etape  450/2000  ce=0.071  precision_val=0.977 f1_macro_val=0.977
+  [stgcn graine=0] etape  500/2000  ce=0.012  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=0] etape  550/2000  ce=0.003  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=0] etape  600/2000  ce=0.009  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=0] etape  650/2000  ce=0.011  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=0] etape  700/2000  ce=0.003  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=0] etape  750/2000  ce=0.010  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=0] etape  800/2000  ce=0.003  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=0] etape  850/2000  ce=0.002  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=0] etape  900/2000  ce=0.008  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=0] etape  950/2000  ce=0.006  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=0] etape 1000/2000  ce=0.020  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=0] etape 1050/2000  ce=0.018  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=0] etape 1100/2000  ce=0.004  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=0] etape 1150/2000  ce=0.043  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=0] etape 1200/2000  ce=0.005  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=0] etape 1250/2000  ce=0.004  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=0] etape 1300/2000  ce=0.026  precision_val=0.958 f1_macro_val=0.959
+  [stgcn graine=0] etape 1350/2000  ce=0.060  precision_val=0.981 f1_macro_val=0.981
+  [stgcn graine=0] etape 1400/2000  ce=0.010  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=0] etape 1450/2000  ce=0.001  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=0] etape 1500/2000  ce=0.006  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=0] etape 1550/2000  ce=0.015  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=0] etape 1600/2000  ce=0.001  precision_val=0.981 f1_macro_val=0.982
+  [stgcn graine=0] etape 1650/2000  ce=0.001  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=0] etape 1700/2000  ce=0.010  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=0] etape 1750/2000  ce=0.001  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=0] etape 1800/2000  ce=0.000  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=0] etape 1850/2000  ce=0.021  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=0] etape 1900/2000  ce=0.000  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=0] etape 1950/2000  ce=0.000  precision_val=1.000 f1_macro_val=1.000
+RESULTAT_PARTIEL stgcn_graine0 precision=1.000 f1=1.000
+
+=== stgcn_squelette graine=1 ===
+  [stgcn graine=1] etape    0/2000  ce=4.224  precision_val=0.037 f1_macro_val=0.003
+  [stgcn graine=1] etape   50/2000  ce=0.324  precision_val=0.769 f1_macro_val=0.762
+  [stgcn graine=1] etape  100/2000  ce=0.065  precision_val=0.981 f1_macro_val=0.982
+  [stgcn graine=1] etape  150/2000  ce=0.039  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=1] etape  200/2000  ce=0.091  precision_val=0.954 f1_macro_val=0.952
+  [stgcn graine=1] etape  250/2000  ce=0.040  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=1] etape  300/2000  ce=0.050  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=1] etape  350/2000  ce=0.010  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=1] etape  400/2000  ce=0.046  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=1] etape  450/2000  ce=0.023  precision_val=0.981 f1_macro_val=0.982
+  [stgcn graine=1] etape  500/2000  ce=0.020  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=1] etape  550/2000  ce=0.007  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=1] etape  600/2000  ce=0.008  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=1] etape  650/2000  ce=0.006  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=1] etape  700/2000  ce=0.006  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=1] etape  750/2000  ce=0.004  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=1] etape  800/2000  ce=0.002  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=1] etape  850/2000  ce=0.007  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=1] etape  900/2000  ce=0.010  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=1] etape  950/2000  ce=0.026  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=1] etape 1000/2000  ce=0.061  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=1] etape 1050/2000  ce=0.009  precision_val=0.981 f1_macro_val=0.981
+  [stgcn graine=1] etape 1100/2000  ce=0.022  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=1] etape 1150/2000  ce=0.023  precision_val=0.972 f1_macro_val=0.972
+  [stgcn graine=1] etape 1200/2000  ce=0.001  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=1] etape 1250/2000  ce=0.002  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=1] etape 1300/2000  ce=0.003  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=1] etape 1350/2000  ce=0.001  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=1] etape 1400/2000  ce=0.001  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=1] etape 1450/2000  ce=0.009  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=1] etape 1500/2000  ce=0.001  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=1] etape 1550/2000  ce=0.003  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=1] etape 1600/2000  ce=0.082  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=1] etape 1650/2000  ce=0.001  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=1] etape 1700/2000  ce=0.004  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=1] etape 1750/2000  ce=0.000  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=1] etape 1800/2000  ce=0.002  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=1] etape 1850/2000  ce=0.000  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=1] etape 1900/2000  ce=0.006  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=1] etape 1950/2000  ce=0.000  precision_val=1.000 f1_macro_val=1.000
+RESULTAT_PARTIEL stgcn_graine1 precision=0.995 f1=0.995
+
+=== stgcn_squelette graine=2 ===
+  [stgcn graine=2] etape    0/2000  ce=3.984  precision_val=0.037 f1_macro_val=0.003
+  [stgcn graine=2] etape   50/2000  ce=0.313  precision_val=0.741 f1_macro_val=0.730
+  [stgcn graine=2] etape  100/2000  ce=0.085  precision_val=0.949 f1_macro_val=0.947
+  [stgcn graine=2] etape  150/2000  ce=0.062  precision_val=0.981 f1_macro_val=0.981
+  [stgcn graine=2] etape  200/2000  ce=0.122  precision_val=0.977 f1_macro_val=0.977
+  [stgcn graine=2] etape  250/2000  ce=0.042  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=2] etape  300/2000  ce=0.035  precision_val=0.981 f1_macro_val=0.981
+  [stgcn graine=2] etape  350/2000  ce=0.045  precision_val=0.981 f1_macro_val=0.981
+  [stgcn graine=2] etape  400/2000  ce=0.007  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=2] etape  450/2000  ce=0.046  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=2] etape  500/2000  ce=0.010  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=2] etape  550/2000  ce=0.004  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=2] etape  600/2000  ce=0.008  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=2] etape  650/2000  ce=0.007  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=2] etape  700/2000  ce=0.006  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=2] etape  750/2000  ce=0.018  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=2] etape  800/2000  ce=0.009  precision_val=0.977 f1_macro_val=0.977
+  [stgcn graine=2] etape  850/2000  ce=0.075  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=2] etape  900/2000  ce=0.002  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=2] etape  950/2000  ce=0.004  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=2] etape 1000/2000  ce=0.003  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=2] etape 1050/2000  ce=0.001  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=2] etape 1100/2000  ce=0.023  precision_val=0.981 f1_macro_val=0.982
+  [stgcn graine=2] etape 1150/2000  ce=0.008  precision_val=0.972 f1_macro_val=0.972
+  [stgcn graine=2] etape 1200/2000  ce=0.006  precision_val=0.977 f1_macro_val=0.977
+  [stgcn graine=2] etape 1250/2000  ce=0.003  precision_val=0.977 f1_macro_val=0.978
+  [stgcn graine=2] etape 1300/2000  ce=0.004  precision_val=0.977 f1_macro_val=0.977
+  [stgcn graine=2] etape 1350/2000  ce=0.039  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=2] etape 1400/2000  ce=0.006  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=2] etape 1450/2000  ce=0.005  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=2] etape 1500/2000  ce=0.013  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=2] etape 1550/2000  ce=0.003  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=2] etape 1600/2000  ce=0.008  precision_val=0.995 f1_macro_val=0.995
+  [stgcn graine=2] etape 1650/2000  ce=0.000  precision_val=0.977 f1_macro_val=0.977
+  [stgcn graine=2] etape 1700/2000  ce=0.002  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=2] etape 1750/2000  ce=0.009  precision_val=0.991 f1_macro_val=0.991
+  [stgcn graine=2] etape 1800/2000  ce=0.003  precision_val=0.977 f1_macro_val=0.977
+  [stgcn graine=2] etape 1850/2000  ce=0.012  precision_val=0.986 f1_macro_val=0.986
+  [stgcn graine=2] etape 1900/2000  ce=0.007  precision_val=1.000 f1_macro_val=1.000
+  [stgcn graine=2] etape 1950/2000  ce=0.001  precision_val=0.995 f1_macro_val=0.995
+RESULTAT_PARTIEL stgcn_graine2 precision=0.986 f1=0.986
+
+
+=== RESUME MULTI-GRAINES (ST-GCN, squelette verite-terrain seul) ===
+graine=0  precision=1.000  f1=1.000
+graine=1  precision=0.995  f1=0.995
+graine=2  precision=0.986  f1=0.986
+stgcn: precision mean=0.994 stdev=0.007  f1 mean=0.994 stdev=0.007
+references : from-scratch LiDAR=0.509+-0.044 | squelette-auxiliaire=0.549+-0.009 | laplacien+SVM regle (meilleur LiDAR-only)=0.659
+ENTRAINEMENT_STGCN_OK

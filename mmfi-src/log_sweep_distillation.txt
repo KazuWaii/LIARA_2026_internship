@@ -1,0 +1,65 @@
+
+=== sweep distillation {'temperature': 2.0, 'lambda3': 0.01} ===
+  [distill graine=0 T=2.0 l1=0.5 l2=0.5 l3=0.01] etape    0/800  dure=3.654 molle=3.405 feat=12.7709  precision_val=0.037 f1_macro_val=0.003
+  [distill graine=0 T=2.0 l1=0.5 l2=0.5 l3=0.01] etape  100/800  dure=1.935 molle=2.375 feat=3.1980  precision_val=0.079 f1_macro_val=0.046
+  [distill graine=0 T=2.0 l1=0.5 l2=0.5 l3=0.01] etape  200/800  dure=0.886 molle=1.211 feat=2.4710  precision_val=0.352 f1_macro_val=0.347
+  [distill graine=0 T=2.0 l1=0.5 l2=0.5 l3=0.01] etape  300/800  dure=0.445 molle=0.713 feat=2.2357  precision_val=0.370 f1_macro_val=0.397
+  [distill graine=0 T=2.0 l1=0.5 l2=0.5 l3=0.01] etape  400/800  dure=0.252 molle=0.502 feat=2.0964  precision_val=0.449 f1_macro_val=0.447
+  [distill graine=0 T=2.0 l1=0.5 l2=0.5 l3=0.01] etape  500/800  dure=0.294 molle=0.463 feat=2.1292  precision_val=0.519 f1_macro_val=0.507
+  [distill graine=0 T=2.0 l1=0.5 l2=0.5 l3=0.01] etape  600/800  dure=0.326 molle=0.466 feat=1.7180  precision_val=0.495 f1_macro_val=0.502
+  [distill graine=0 T=2.0 l1=0.5 l2=0.5 l3=0.01] etape  700/800  dure=0.143 molle=0.378 feat=1.7388  precision_val=0.523 f1_macro_val=0.529
+RESULTAT_PARTIEL {'temperature': 2.0, 'lambda3': 0.01} precision=0.500 f1=0.511
+
+=== sweep distillation {'temperature': 4.0, 'lambda3': 0.01} ===
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.01] etape    0/800  dure=3.654 molle=3.335 feat=12.7709  precision_val=0.037 f1_macro_val=0.003
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.01] etape  100/800  dure=1.770 molle=2.824 feat=3.2051  precision_val=0.102 f1_macro_val=0.064
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.01] etape  200/800  dure=0.822 molle=2.199 feat=2.3908  precision_val=0.306 f1_macro_val=0.275
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.01] etape  300/800  dure=0.422 molle=1.780 feat=2.1620  precision_val=0.412 f1_macro_val=0.399
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.01] etape  400/800  dure=0.202 molle=1.610 feat=1.9979  precision_val=0.407 f1_macro_val=0.397
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.01] etape  500/800  dure=0.334 molle=1.621 feat=2.0518  precision_val=0.407 f1_macro_val=0.434
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.01] etape  600/800  dure=0.378 molle=1.564 feat=1.5794  precision_val=0.403 f1_macro_val=0.410
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.01] etape  700/800  dure=0.138 molle=1.508 feat=1.5697  precision_val=0.472 f1_macro_val=0.478
+RESULTAT_PARTIEL {'temperature': 4.0, 'lambda3': 0.01} precision=0.477 f1=0.523
+
+=== sweep distillation {'temperature': 10.0, 'lambda3': 0.01} ===
+  [distill graine=0 T=10.0 l1=0.5 l2=0.5 l3=0.01] etape    0/800  dure=3.654 molle=3.303 feat=12.7709  precision_val=0.037 f1_macro_val=0.003
+  [distill graine=0 T=10.0 l1=0.5 l2=0.5 l3=0.01] etape  100/800  dure=1.843 molle=3.245 feat=3.1927  precision_val=0.106 f1_macro_val=0.057
+  [distill graine=0 T=10.0 l1=0.5 l2=0.5 l3=0.01] etape  200/800  dure=0.924 molle=3.192 feat=2.4042  precision_val=0.366 f1_macro_val=0.348
+  [distill graine=0 T=10.0 l1=0.5 l2=0.5 l3=0.01] etape  300/800  dure=0.550 molle=3.158 feat=2.2377  precision_val=0.449 f1_macro_val=0.461
+  [distill graine=0 T=10.0 l1=0.5 l2=0.5 l3=0.01] etape  400/800  dure=0.363 molle=3.130 feat=2.0470  precision_val=0.449 f1_macro_val=0.454
+  [distill graine=0 T=10.0 l1=0.5 l2=0.5 l3=0.01] etape  500/800  dure=0.374 molle=3.121 feat=2.1444  precision_val=0.477 f1_macro_val=0.481
+  [distill graine=0 T=10.0 l1=0.5 l2=0.5 l3=0.01] etape  600/800  dure=0.427 molle=3.111 feat=1.5884  precision_val=0.486 f1_macro_val=0.493
+  [distill graine=0 T=10.0 l1=0.5 l2=0.5 l3=0.01] etape  700/800  dure=0.102 molle=3.109 feat=1.5466  precision_val=0.523 f1_macro_val=0.542
+RESULTAT_PARTIEL {'temperature': 10.0, 'lambda3': 0.01} precision=0.491 f1=0.521
+
+=== sweep distillation {'temperature': 4.0, 'lambda3': 0.1} ===
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.1] etape    0/800  dure=3.654 molle=3.335 feat=12.7709  precision_val=0.037 f1_macro_val=0.003
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.1] etape  100/800  dure=2.037 molle=2.894 feat=3.2011  precision_val=0.088 f1_macro_val=0.062
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.1] etape  200/800  dure=0.939 molle=2.224 feat=2.3835  precision_val=0.329 f1_macro_val=0.302
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.1] etape  300/800  dure=0.391 molle=1.798 feat=2.0519  precision_val=0.407 f1_macro_val=0.414
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.1] etape  400/800  dure=0.373 molle=1.682 feat=1.9495  precision_val=0.403 f1_macro_val=0.409
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.1] etape  500/800  dure=0.343 molle=1.603 feat=1.8737  precision_val=0.329 f1_macro_val=0.330
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.1] etape  600/800  dure=0.563 molle=1.572 feat=1.4818  precision_val=0.444 f1_macro_val=0.451
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=0.1] etape  700/800  dure=0.149 molle=1.500 feat=1.4227  precision_val=0.431 f1_macro_val=0.439
+RESULTAT_PARTIEL {'temperature': 4.0, 'lambda3': 0.1} precision=0.449 f1=0.480
+
+=== sweep distillation {'temperature': 4.0, 'lambda3': 1.0} ===
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=1.0] etape    0/800  dure=3.654 molle=3.335 feat=12.7709  precision_val=0.037 f1_macro_val=0.003
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=1.0] etape  100/800  dure=2.336 molle=2.996 feat=3.0291  precision_val=0.093 f1_macro_val=0.051
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=1.0] etape  200/800  dure=1.293 molle=2.430 feat=2.3356  precision_val=0.269 f1_macro_val=0.220
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=1.0] etape  300/800  dure=0.436 molle=1.864 feat=1.8911  precision_val=0.403 f1_macro_val=0.381
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=1.0] etape  400/800  dure=0.371 molle=1.693 feat=1.7015  precision_val=0.421 f1_macro_val=0.393
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=1.0] etape  500/800  dure=0.261 molle=1.602 feat=1.4989  precision_val=0.481 f1_macro_val=0.469
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=1.0] etape  600/800  dure=0.403 molle=1.495 feat=1.1384  precision_val=0.468 f1_macro_val=0.466
+  [distill graine=0 T=4.0 l1=0.5 l2=0.5 l3=1.0] etape  700/800  dure=0.296 molle=1.503 feat=1.1421  precision_val=0.491 f1_macro_val=0.486
+RESULTAT_PARTIEL {'temperature': 4.0, 'lambda3': 1.0} precision=0.537 f1=0.549
+
+
+=== RESUME SWEEP DISTILLATION (800 pas, graine=0) ===
+{'temperature': 2.0, 'lambda3': 0.01}: precision=0.500 f1=0.511
+{'temperature': 4.0, 'lambda3': 0.01}: precision=0.477 f1=0.523
+{'temperature': 10.0, 'lambda3': 0.01}: precision=0.491 f1=0.521
+{'temperature': 4.0, 'lambda3': 0.1}: precision=0.449 f1=0.480
+{'temperature': 4.0, 'lambda3': 1.0}: precision=0.537 f1=0.549
+references (from-scratch classification seule, meme protocole, a 800 pas non mesure specifiquement -- reference finale a 2000 pas): 0.509+-0.044
+SWEEP_DISTILLATION_OK

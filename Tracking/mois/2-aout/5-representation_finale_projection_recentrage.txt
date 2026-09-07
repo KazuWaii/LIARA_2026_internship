@@ -1,0 +1,70 @@
+REPRÉSENTATION RETENUE POUR LE JEPA TEMPOREL SUR NUAGES DE POINTS
+Mathieu Bonneau — 30 août 2026
+
+Suite à l'analyse des limites de la tokenisation point-based (FPS+kNN, cf.
+4-adaptation_temporelle_ijepa_vjepa.txt) pour la dimension temporelle.
+
+
+LIMITES DE L'APPROCHE "POINT-BASED + ATTENTION SEULE" (RAPPEL)
+
+FPS+kNN ré-échantillonne différemment à chaque frame (contenu-dépendant),
+contrairement à la grille fixe des pixels vidéo. Conséquences : bruit de
+correspondance même sans mouvement, incomplétude liée à l'occlusion (LiDAR =
+point de vue unique), granularité grossière (peu de patches), masquage fuyant
+(patches kNN qui se chevauchent), charge d'apprentissage supplémentaire pour
+absorber ce bruit. Décision : abandonner cette voie au profit d'une projection
+2D qui redonne une grille fixe.
+
+
+REPRÉSENTATION RETENUE
+
+Projection 2D multi-canaux par frame (au lieu d'une image de profondeur à un
+seul canal r) :
+  - canaux (x, y, z) recentrés + intensité, indexés par (canal laser, azimut) ;
+  - canal de validité (occupé / vide), nécessaire car une direction sans retour
+    n'a pas de (x,y,z) réel (ambigu avec un point proche de l'origine sinon) —
+    même logique que le empty-token appris d'AD-L-JEPA.
+Empilage de N frames dans le temps (même principe que V-JEPA : conv 3D,
+positional embedding 3D, masquage 3D multi-block, tous réutilisables tels
+quels — seul le nombre de canaux d'entrée change).
+
+(x,y,z) est mathématiquement récupérable à partir de r seul (géométrie du
+capteur fixe et connue par cellule) — donner ces canaux explicitement n'ajoute
+pas d'information mais allège la charge d'apprentissage (le réseau n'a plus à
+réinverser implicitement la projection sphérique).
+
+
+DÉFINITION DU RECENTRAGE
+
+Ancre : centre de la boîte englobante 3D du sujet isolé (retenu plutôt que le
+centroïde — géométrique, insensible à la densité de points, insensible aux
+petites variations de pose ; plutôt qu'une racine de squelette — évite une
+dépendance à un estimateur de pose non validé sur le domaine).
+
+Fréquence : une seule fois par fenêtre temporelle, pas par frame. Calcul sur
+une frame de référence du clip (ex. la première), même décalage appliqué à
+toutes les frames de la fenêtre. Un recentrage par frame effacerait le
+déplacement réel (ex. la marche) — signal qu'on veut justement apprendre.
+
+Axes :
+  - (x, y) : centrés sur le centre de la boîte englobante ;
+  - z : NON centré — référencé au sol (z_personne = z_brut - z_sol, z_sol
+    obtenu via la capture de scène vide + hauteur connue du LiDAR). Centrer z
+    effacerait l'information posturale (debout/assis/allongé), potentiellement
+    discriminante pour plusieurs classes du protocole.
+
+
+LAISSÉ EN RÉSERVE (PAS POUR LA V1)
+
+Canonicalisation d'orientation (aligner l'axe avant-du-corps, rotation autour
+de z uniquement) : le protocole de caractérisation teste déjà face/profil/dos,
+donc l'orientation est un facteur de variation connu — extension naturelle si
+le probing montre une forte sensibilité à l'orientation, mais complexité
+non justifiée en première version.
+
+
+PROCHAINE ÉTAPE
+
+Spécifier le canal de validité (empty-token) et son intégration dans la perte
+JEPA (cf. mécanisme AD-L-JEPA, 3-point_jepa_fondation_projet.txt), avant
+implémentation du pipeline de projection multi-canaux.

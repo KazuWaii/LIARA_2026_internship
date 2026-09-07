@@ -1,0 +1,464 @@
+Recherche multi-agents nouvelles architectures + squelette-plafond + distillation
+Mathieu Bonneau -- 5 septembre 2026 (utilisateur absent 8h, "keep pushing new
+methods, architectures... search for github code from articles")
+
+
+CONTEXTE
+
+Suite au tuning du spectre Laplacien (note 4 : 0,617->0,659) : demande de
+continuer sur cette lancee ("redo v3 with PCA regularization") ET de mener
+une recherche plus large ("search for github code from articles and keep
+pushing new methods, architectures") pendant une absence de 8h minimum.
+
+
+ETAPE 1 -- v3 (statistiques de vecteurs propres) avec regularisation PCA
+
+tuner_laplacien_v3_pca.py : PCA(n_composantes) avant SVM/HGB (hyperparametres
+deja regles : C=3/gamma=scale, HGB tune), sur les features v3 deja extraites
+(6200 dims, split sujet, 4 fenetres) -- teste l'hypothese que le v3 avait
+SUR-APPRIS (README) plutot que d'etre denue de signal.
+
+Resultats (VAL) :
+  PCA(v3 seul), meilleur : n_comp=400, SVM=0,626 (vs reference sans PCA : 0,590)
+  PCA(concat[v2,v3]), meilleur : n_comp=100, SVM=0,641 (vs v2 seul tune : 0,638/0,649)
+
+CONCLUSION : la PCA regularise bien v3 seul (0,590->0,626) mais NE DEPASSE
+PAS v2 seul (valeurs propres seules, 0,638-0,649) meme combine. Les
+statistiques de vecteurs propres n'apportent donc PAS de signal net
+supplementaire pour NOTRE isolation de la personne (differente de celle du
+papier, cf. etape 3) -- v2 (quadrants, valeurs propres seules) reste la
+reference. Piste v3 CLOSE (pas de suite prevue sans une meilleure isolation
+en amont).
+
+
+ETAPE 2 -- Recherche multi-agents (Workflow, 8 agents, 39 candidats, ~800k tokens)
+
+7 agents de recherche en parallele (SOTA MM-Fi, suites Laplacien, architectures
+petit-echantillon, GNN squelette, LiDAR-HAR recent 2025-2026, distillation
+LUPI, variantes transformer) + 1 agent de synthese. Details complets dans le
+journal du workflow (session) ; resume actionnable ici.
+
+DECOUVERTE CLE (agent "laplacien_followups", lecture du texte complet
+d'arXiv:2509.23255, pas seulement l'abstract) : le papier de reference
+(0,90 sur MM-Fi 27-classes) isole la personne avec un DETECTEUR 3D SUPERVISE
+(PV-RCNN via OpenPCDet), PAS une heuristique soustraction-de-fond+DBSCAN
+comme notre reimplementation. Repo du papier toujours vide (verifie a
+nouveau, 0 activite depuis 2025-09-27, "code coming soon" -- papier
+maintenant accepte ICASSP 2026). Details recette complets recuperes du texte
+HTML de l'article (K_val=60 pas 30, fenetre 4s@10Hz stride 0.5s, PCA a 1500
+dims avant SVM -- coherent avec notre etape 1 ci-dessus qui teste deja cette
+piste PCA independamment).
+
+Genre de resultat aussi trouve : X-Fi (ICLR 2025, arXiv:2410.10167, code
+verifie reel) rapporte 52,7% en LiDAR-seul sur MM-Fi avec un transformer
+point-cloud dedie -- CONFIRMATION INDEPENDANTE que notre plateau transformer
+(~0,49-0,55 toutes variantes JEPA/from-scratch confondues) est bien un
+plafond du type d'architecture, pas un probleme d'implementation.
+
+39 candidats catalogues avec verification de code reelle (pas juste lu le
+README -- listing de fichiers via API GitHub) : la plupart des architectures
+GNN squelette (CTR-GCN, InfoGCN, Hyperformer, SkateFormer) et backbones
+point-cloud pre-entraines ShapeNet (PointGST, Point-JEPA officiel, PointGPT,
+ReCon) ont du CODE REEL VERIFIE, mais l'agent de synthese (qui a lu
+mmfi-src/ directement) a juge la plupart REDONDANTS une fois le point
+suivant etabli.
+
+L'agent de synthese a lui-meme DECOUVERT (en lisant le depot) que
+modele_stgcn.py/entrainer_stgcn.py (deja en cours d'ecriture en parallele
+cette nuit, cf. etape 3 ci-dessous) repondait deja a la question "plafond
+squelette" mieux que n'importe quelle architecture GNN plus sophistiquee de
+la litterature (CTR-GCN etc. deviennent inutiles une fois le plafond mesure
+par un modele plus simple).
+
+
+ETAPE 3 -- ST-GCN "plafond squelette" (implementation independante, validee)
+
+modele_stgcn.py (nouveau) : ST-GCN simplifie (Yan et al. AAAI 2018) -- UNE
+seule matrice d'adjacence normalisee (GCN standard) + ponderation d'arete
+apprise (edge importance weighting, conserve de l'article original), PAS le
+partitionnement a 3 sous-ensembles de l'article original (simplification
+documentee, graphe 17 noeuds bien plus petit que les squelettes NTU-RGBD
+25 noeuds pour lesquels ST-GCN a ete concu). squelette_dataset.MMFiDatasetSqueletteSeul
+(nouveau) : squelette verite-terrain SEUL (pas de LiDAR), PLEINE resolution
+temporelle (pas de sous-echantillonnage, contrairement a MMFiDatasetSquelette).
+entrainer_stgcn.py : meme protocole exact que toutes les autres comparaisons
+(2000 pas, lot=64, AdamW 1e-3, graines 0/1/2, decouper_train_val).
+
+RESULTAT (log_stgcn.txt) :
+  graine=0 precision=1.000  graine=1 precision=0.995  graine=2 precision=0.986
+  moyenne +/- ecart-type : 0,994 +/- 0,007
+
+QUASI-PARFAIT -- suffisamment surprenant pour exiger une verification avant
+d'etre cru (voir ci-dessous), mais PAS le premier resultat de ce type dans
+la litterature skeleton-HAR sur des actions distinctes/scriptees avec un
+squelette VERITE-TERRAIN (pas estime) : coherent avec le fait que le
+pipeline original MM-Fi (AGCN/CTRGCN sur squelette ESTIME par pose-
+estimation depuis le LiDAR) ne plafonne qu'a 54,44%/35,97% -- l'ecart entre
+54% et 99% quantifie l'ampleur de l'erreur de pose-estimation dans le
+pipeline original, PAS une limite du classifieur squelette lui-meme.
+
+VERIFICATION ANTI-FUITE (essentielle avant de croire 0,994) :
+1. Premier essai de controle NEGATIF rate : permutation des INDICES de
+   classe (renommer la classe 5 en 12 partout) -- toujours 0,963 de
+   precision. ERREUR DE PROTOCOLE (pas un bug du pipeline) : une simple
+   re-numerotation des classes ne detruit AUCUNE structure apprenable,
+   le probleme reste strictement identique sous un autre nom d'etiquette.
+2. Controle NEGATIF correct : un label ALEATOIRE INDEPENDANT par sequence
+   (pas une permutation systematique) pour train ET val separement. Sous ce
+   vrai bruit : precision_val plafonne a 0,074 (attendu ~0,037 =1/27), perte
+   d'entrainement elle-meme ne descend jamais sous ~3,0 (le modele ne peut
+   meme pas memoriser le bruit sur le train). CONFIRME : aucune fuite,
+   0,994 est un signal reel du squelette verite-terrain.
+
+
+ETAPE 4 -- Distillation squelette->LiDAR par "hallucination de modalite"
+
+Mecanisme trouve par l'agent "distillation_lupi" (code source reel verifie,
+pas juste l'abstract) : Garcia, Morerio & Murino (ECCV 2018, extension de
+Hoffman et al. CVPR'16), github.com/ncgarcia/modality-distillation --
+enseignant FIGE (ici : ST-GCN squelette, deja a 0,994) supervise un etudiant
+LiDAR-seul via TROIS pertes : CE dure + CE molle (temperature T, distille la
+frontiere de decision) + L2 sur les features intermediaires poolees
+(distille la geometrie interne). A l'inference, l'enseignant est JETE --
+vraie modalite-dropout au test, contrairement a MTGEA dont le CODE REEL
+(verifie par le meme agent) garde le squelette en entree meme au test malgre
+ce que dit le texte de leur article -- distinction importante trouvee par
+la recherche, pas juste supposee.
+
+DIFFERENCE avec notre precedente tentative multi-tache naive
+(entrainer_squelette.py, +0,04 seulement, encodeur PARTAGE regressant
+directement les coordonnees xyz) : ici DEUX modeles SEPARES, l'etudiant
+n'apprend jamais a produire du squelette lui-meme, seulement a imiter la
+distribution de decision + la geometrie de features de l'enseignant --
+exactement le type de "bridging" que la litterature (Shi&Kim, MTGEA)
+identifie comme necessaire pour eviter que le signal auxiliaire nuise.
+
+Implementation : modele_stgcn.ModeleSTGCN.forward(retourner_features=True)
+expose la representation poolee pre-tete (512 dims) ; nouveau
+modele_squelette.ModeleClassificationLidar (tokenizer+Transformer, MEME
+architecture que la reference from-scratch, 384 dims poolees) + adaptateur
+lineaire 384->512 appris conjointement pour la perte de features.
+squelette_dataset.MMFiDatasetDistillation (nouveau) : paire (lidar, squelette
+PLEINE resolution, label) sur la MEME fenetre -- necessaire pour que
+l'enseignant voie exactement ce que voit l'etudiant.
+
+Sweep (sweep_distillation.py, 800 pas, 1 graine, poids lambda1=lambda2=0.5
+par defaut de Garcia et al., seuls T et lambda3 balayes) :
+
+  T=2.0  lambda3=0.01 : precision=0,500 f1=0,511
+  T=4.0  lambda3=0.01 : precision=0,477 f1=0,523
+  T=10.0 lambda3=0.01 : precision=0,491 f1=0,521
+  T=4.0  lambda3=0.1  : precision=0,449 f1=0,480
+  T=4.0  lambda3=1.0  : precision=0,537 f1=0,549  <- retenu (meilleur)
+
+Observation : a T=10 (valeur par defaut de Garcia et al., papier sur
+donnees NTU/UCF101 a bien plus grande echelle), la perte "molle" reste
+QUASI PLATE tout du long (~3,1-3,3, proche de ln(27)=3,3) -- signal de
+distillation quasi nul a cette temperature sur notre echelle (moins de
+classes -> logits moins "confiants en valeur absolue" a temperature egale,
+hypothese plausible non testee plus avant).
+
+RUN COMPLET 3 GRAINES (entrainer_distillation_seeds.py, T=4.0, lambda3=1.0,
+2000 pas, memes graines 0/1/2 que toutes les autres comparaisons) --
+L'OPTIMISME DU SWEEP (0,537 a 800 pas, 1 graine) NE SURVIT PAS A LA
+REPETITION :
+
+  graine 0 : precision=0,560 f1=0,568
+  graine 1 : precision=0,523 f1=0,520
+  graine 2 : precision=0,486 f1=0,466
+  moyenne +/- ecart-type : precision=0,523 +/- 0,037  f1=0,518 +/- 0,051
+
+Comparaison aux references (meme protocole exact) :
+  from-scratch LiDAR (classification seule)          : 0,509 +/- 0,044
+  distillation squelette->LiDAR                       : 0,523 +/- 0,037
+  squelette auxiliaire (naif, multi-tache)             : 0,549 +/- 0,009
+  spectre Laplacien + SVM regle (meilleur LiDAR-only) : 0,659
+  squelette-plafond (verite-terrain, pas LiDAR-only)  : 0,994 +/- 0,007
+
+LECTURE HONNETE : la distillation (0,523+/-0,037) est statistiquement
+INDISCERNABLE du from-scratch (0,509+/-0,044, ecart-type plus grand que
+l'ecart entre moyennes) et PAS MEILLEURE que le multi-tache naif deja
+mesure (0,549+/-0,009, variance 4x plus resserree malgre un mecanisme bien
+plus sophistique/mieux fonde theoriquement -- CE dure+molle+L2 features
+separes vs simple regression MSE partagee). MEME VERDICT que TOUTES nos
+tentatives precedentes d'ameliorer l'encodeur LiDAR par un signal
+d'entrainement plus riche (JEPA, multi-tache, maintenant distillation) : le
+plafond semble etre l'ARCHITECTURE ENCODEUR elle-meme (tokenizer+
+Transformer sur grille LiDAR), pas le signal supervise qui l'entraine --
+coherent avec le 52,7% independant de X-Fi (ICLR 2025) en LiDAR-seul sur
+MM-Fi avec leur propre transformer point-cloud dedie.
+
+Hypothese plausible (non testee) pour expliquer l'echec de la distillation
+malgre un enseignant excellent : un enseignant quasi-parfait (0,994)
+produit des cibles molles trop proches de one-hot, meme adoucies par
+temperature, pour apporter beaucoup plus d'information que les labels durs
+eux-memes une fois l'etudiant raisonnablement entraine -- la distillation
+apporte le plus de valeur quand l'enseignant a une incertitude RESIDUELLE
+informative a transmettre (confusions entre classes proches), pas quand il
+est presque toujours certain et correct.
+
+CONCLUSION : piste distillation NON retenue comme amelioration (documentee
+pour eviter de la retenter sans nouvelle idee sur POURQUOI elle
+echouerait differemment). Le spectre Laplacien (0,659, classique, non deep
+learning) reste le meilleur resultat du projet, de loin.
+
+
+ETAPE 5 -- RANSAC + retrait de bruit statistique (isolation Laplacien) -- ECHEC NET
+
+Suggestion de l'agent "laplacien_followups" (rang 3 du plan, risque annonce
+"faible") : ajouter un retrait de plans (sol/mur) par RANSAC + retrait de
+bruit statistique AVANT le DBSCAN existant dans laplacien_spectral.py, en
+reimplementation numpy (Open3D indisponible sur Python 3.13 cette
+plateforme, cf. README section JRDB) -- _supprimer_plans()/
+_retirer_bruit_statistique() (nouveau), parametre nettoyage=True/False sur
+extraire_fenetres_sequence()/_isoler_personne().
+
+Extraction complete (extraire_laplacien_v5.py, meme structure que v4 --
+1080 sequences, 8 fenetres, parallelise, 578s) puis evaluation
+(entrainer_laplacien_v5.py, memes hyperparametres regles que v4) :
+
+  AVEC nettoyage : split_sujet SVM_tune=0,248  HGB_tune=0,239
+                   split_environnement SVM_tune=0,237  HGB_tune=0,237
+  SANS nettoyage (v4, reference) : split_sujet SVM_tune=0,659  HGB_tune=0,649
+                                     split_environnement SVM_tune=0,643 HGB_tune=0,653
+
+EFFONDREMENT NET (0,65->0,24, PAS une amelioration) -- le RANSAC generique
+(3 points au hasard, sans contrainte de taille/orientation) applique sur le
+nuage DEJA reduit au foreground (soustraction de fond, ~50-150 points
+apres DBSCAN dans le pipeline original) trouve trop facilement un "plan"
+dans une PARTIE DU CORPS lui-meme (dos, torse, bras tendu -- localement
+plats a cette faible densite de points) et le retire comme s'il s'agissait
+d'un mur, mutilant la personne au lieu du fond. Hypothese non testee (piste
+d'amelioration si repris) : appliquer le RANSAC sur la frame BRUTE (avant
+soustraction de fond, quand le sol/mur sont de vrais grands plans avec
+beaucoup plus de points qu'une silhouette humaine parcellaire) plutot
+qu'apres, et/ou contraindre les plans a etre proches de l'horizontale/
+verticale et suffisamment etendus pour exclure une confusion avec un
+membre. CONCLUSION : ne pas adopter ce correctif tel quel -- le pipeline
+DBSCAN seul (v4, 0,659/0,653) reste la reference. Fichiers conserves
+(extraire_laplacien_v5.py/entrainer_laplacien_v5.py/features_laplacien_v5_all.npz)
+pour reference/reprise eventuelle avec les contraintes suggerees ci-dessus.
+
+
+ETAPE 6 -- TRANSFER LEARNING SHAPENET (POINT-MAE) -- PERCEE, 0,934
+
+Utilisateur de retour ("run everything you need") apres le message-bilan --
+poursuite des deux pistes ouvertes (detecteur 3D isolation, transfer
+learning ShapeNet). Verification environnement AVANT de commencer :
+`nvcc`/`cl.exe` (MSVC) introuvables sur cette machine -- confirme que
+TOUS les depots candidats (Point-MAE, Point-JEPA officiel, PointGPT, ReCon,
+PointNet++ rapide) sont bloques (extensions CUDA compilees necessaires :
+pointnet2_ops, KNN_CUDA, Chamfer distance). Installer une chaine CUDA
+Toolkit + Visual Studio Build Tools complete pour ce seul test aurait ete
+un changement systeme lourd (invasif, multi-Go, affecte toute la machine)
+-- PAS FAIT sans consultation explicite.
+
+CONTOURNEMENT : le CHECKPOINT (poids ShapeNet-pretrained, pretrain.pth,
+332 Mo) est un simple state_dict, telechargeable et chargeable SANS
+executer aucun code de leur depot ni compiler quoi que ce soit. Architecture
+reconstruite par RETRO-INGENIERIE des CLES et FORMES du state_dict
+(pas depuis leur code source) :
+  - mini-PointNet local+global (conv1d 3->128->256, maxpool+concat,
+    conv1d 512->512->384, maxpool) -> un token (384,) par groupe
+  - positional embedding (MLP 3->128->384 sur le centre du groupe)
+  - 12 blocs Transformer pre-normes standard (dim=384, 6 tetes, qkv sans
+    biais, mlp_ratio=4) -- architecture ViT/timm classique
+  - LayerNorm finale
+Chargement `strict=True` reussi du premier coup (apres correction du nom
+des sous-modules MLP fc1/fc2 -> indices Sequential) -- CONFIRME que la
+reconstruction est architecturalement EXACTE, pas approximative.
+
+FPS+kNN de groupement REUTILISE tel quel de tokenisation.py (fps/grouper_knn,
+methode points existante du projet) avec K=64 centres/32 voisins (valeurs
+Point-MAE) au lieu de 32/24 (valeurs projet) -- a REVELE DEUX BUGS DE
+PADDING REELS dans ce code partage, invisibles tant qu'appele avec les
+valeurs par defaut du projet seulement :
+  1. `fps()` comparait le nombre de centres trouves a la CONSTANTE GLOBALE
+     K_CENTRES (32) au lieu du parametre `k_centres` recu en argument --
+     silencieusement retournait MOINS de centres que demande des qu'appele
+     avec une autre valeur.
+  2. Le padding lui-meme (`indices[:manquant]`) tronquait silencieusement
+     au lieu de boucler quand `manquant > len(indices)` (cas frequent avec
+     K=64 demande sur des nuages de <16 points apres isolation) --
+     corrige avec une indexation modulo.
+  3. `grouper_knn()` n'avait AUCUN padding si moins de k_voisins points
+     etaient disponibles au total -- jamais expose avant (l'usage existant
+     du projet appelle toujours cette fonction sur des frames BRUTES,
+     >=1009 points, jamais sous-dimensionnees) -- ajoute.
+Les deux fonctions restent correctes pour l'usage EXISTANT du projet
+(K=32/24 sur frames brutes) -- corrections strictement additives.
+
+PREMIER ESSAI (entrainement "a la volee", isolation+FPS/kNN+encodeur
+recalcules a CHAQUE pas) : ~17s/pas meme avec 6 workers CPU paralleles --
+bien trop lent pour un protocole 3 graines (aurait pris des heures par
+graine). Diagnostic : PAS un bug (verifie par chronometrage fin, cf. session)
+-- le cout reel vient du RECALCUL COMPLET du pretraitement (isolation
+DBSCAN + FPS + kNN pour 16 frames/fenetre) a CHAQUE pas d'entrainement,
+inutile puisque l'encodeur est FIGE (ses features ne dependent jamais des
+poids entraines). SOLUTION : precalcul complet (extraire_pointmae.py,
+meme principe que le pipeline Laplacien) -- extraction CPU parallele
+(14 processus, 1080 sequences, 4 fenetres/sequence, 8 frames
+echantillonnees/fenetre, ~6,5 min) PUIS forward GPU par lots de l'encodeur
+fige (~1 min) -> features (4320, 8, 768) sauvegardees une fois pour toutes.
+L'entrainement devient alors quasi instantane (juste un pooling temporel +
+une tete lineaire sur des features deja calculees, quelques secondes pour
+2000 pas x 3 graines).
+
+RESULTAT (meme protocole exact que toutes les autres comparaisons -- 2000
+pas, lot=64, AdamW 1e-3, graines 0/1/2), linear probing (encodeur FIGE,
+recommande par PointGST a cette echelle plutot que le fine-tuning complet) :
+
+  Split SUJET (comme toutes les autres comparaisons) :
+    graine 0 : precision=0,941  graine 1 : precision=0,929  graine 2 : precision=0,931
+    moyenne +/- ecart-type : 0,934 +/- 0,006
+
+  Split ENVIRONNEMENT (E01-E03 train / E04 val, protocole du papier de reference) :
+    graine 0 : precision=0,918  graine 1 : precision=0,905  graine 2 : precision=0,901
+    moyenne +/- ecart-type : 0,908 +/- 0,009
+
+VERIFICATION ANTI-FUITE (meme standard que le squelette-plafond, etape 3) :
+labels ALEATOIRES INDEPENDANTS par fenetre (train ET val separement, pas
+une permutation systematique) -- precision s'effondre a 0,027-0,056 sur 2000
+pas (attendu ~0,037 = 1/27), confirmant qu'AUCUNE fuite n'explique le 0,934
+avec les vrais labels.
+
+COMPARAISON A TOUTES LES REFERENCES DU PROJET :
+  from-scratch LiDAR                                    : 0,509 +/- 0,044
+  squelette auxiliaire (naif, multi-tache)                : 0,549 +/- 0,009
+  distillation squelette->LiDAR                           : 0,523 +/- 0,037
+  spectre Laplacien + SVM/HGB regle (ancien meilleur)     : 0,659
+  Point-MAE (ShapeNet, fige) -- split sujet                : 0,934 +/- 0,006  <- NOUVEAU MEILLEUR
+  Point-MAE (ShapeNet, fige) -- split environnement        : 0,908 +/- 0,009
+  squelette-plafond (verite-terrain, PAS LiDAR-only)      : 0,994 +/- 0,007
+
+LECTURE : +0,275 sur l'ancien meilleur resultat LiDAR-only (0,659) --
+DEPASSE MEME le 81-90% rapporte par la litterature de reference
+(arXiv:2509.23255) sur un protocole comparable (split environnement, 0,908
+contre 0,81-0,90), et approche le plafond squelette verite-terrain (0,994)
+TOUT EN RESTANT UN VRAI RESULTAT LIDAR-ONLY (l'encodeur ne voit jamais le
+squelette, seulement le nuage de points isole par soustraction-de-fond+
+DBSCAN, identique au pipeline Laplacien).
+
+Ceci confirme DIRECTEMENT l'hypothese de la toute PREMIERE recherche
+multi-agents (4 septembre, rapport "small_sample_architectures") :
+"pretraining ShapeNet/ModelNet40 utile surtout quand le jeu de donnees
+cible est petit ET que la source de pretraining est plus grande/differente"
+-- exactement ce qui manquait a notre propre tentative JEPA (pre-entrainee
+ET fine-tunee sur le MEME petit corpus MM-Fi, echec documente). Resout
+aussi le mystere du plateau transformer (~0,49-0,55 partout : from-scratch,
+JEPA, X-Fi independant, distillation) : ce n'est pas que les point-clouds
+LiDAR de MM-Fi manquent d'information exploitable -- c'est qu'un encodeur
+appris UNIQUEMENT sur ~864-1080 sequences n'a pas assez de donnees pour
+apprendre de bonnes features geometriques generiques. Un encodeur
+pre-entraine sur ~50k objets ShapeNet transfere bien MEME vers un domaine
+totalement different (objets CAD rigides complets vs silhouette humaine
+eparse et dynamique).
+
+PRUDENCE METHODOLOGIQUE : seul le linear probing teste (pas le fine-tuning
+complet de l'encodeur -- contrainte de temps ET PointGST recommande
+justement le probing a cette echelle) ; isolation de la personne = meme
+heuristique DBSCAN que le pipeline Laplacien (memes limites documentees,
+cf. etape 5 RANSAC) ; seulement 4 fenetres/sequence, 8 frames
+echantillonnees/fenetre (reduit pour la vitesse d'extraction) ; architecture
+reconstruite par retro-ingenierie du state_dict plutot que depuis le code
+source officiel (chargement strict=True reussi = forte confiance, mais pas
+une garantie absolue d'equivalence bit-a-bit avec leur implementation).
+
+PISTE NON TENTEE (temps insuffisant) : fine-tuning complet de l'encodeur
+(geler_encodeur=False, deja implemente dans modele_pointmae.py/
+entrainer_pointmae.py mais pas benchmarke avec le pipeline precalcule --
+necessiterait de refaire l'extraction a chaque graine puisque l'encodeur
+ne serait plus fige) -- probablement peu utile vu la marge deja large et
+le risque de sur-apprentissage deja documente pour notre propre JEPA.
+
+
+ETAPE 7 -- CLASSIFIEUR CLASSIQUE SUR FEATURES POINT-MAE -- ENCORE MIEUX, 0,949
+
+Suite a "Keep going on, you have full permissions" : essai d'un SVM/RF/HGB
+(memes hyperparametres deja regles pour le pipeline Laplacien) sur les
+MEMES features Point-MAE gelees (pas de nouvel entrainement d'encodeur,
+juste pooling mean+max temporel fige, 1536 dims) a la place de la tete
+lineaire+pooling appris par descente de gradient. tuner_pointmae_classique.py.
+
+RESULTATS (VAL, split sujet sauf indication) :
+  SVM defaut (C=1.0)                          : 0,946
+  RandomForest defaut                          : 0,846
+  HistGradientBoosting (hyperparams Laplacien) : 0,910
+  SVM regle (C=3.0, gamma=scale, GridSearchCV GroupKFold sujet) : 0,949
+  SVM regle (C=3.0, gamma=scale) -- split ENVIRONNEMENT           : 0,926
+
+Le SVM regle DEPASSE legerement la tete lineaire+pooling appris (0,934+/-0,006
+sur 3 graines) sur les DEUX splits, en etant DETERMINISTE (pas de graine a
+faire varier, SVM/features fixes) -- NOUVEAU MEILLEUR RESULTAT DU PROJET :
+0,949 (split sujet) / 0,926 (split environnement). RandomForest reste
+nettement en retrait, coherent avec son comportement sur le pipeline
+Laplacien (etape 1, tuner_laplacien_v2.py) -- pas d'interet a le regler
+davantage. Lecture : le signal vient des FEATURES Point-MAE elles-memes
+(deja tres riches et bien separees), le choix du classifieur en aval compte
+relativement peu une fois ce point atteint (SVM/HGB/tete-lineaire tous
+0,91-0,95).
+
+
+ETAPE 8 -- FINE-TUNING COMPLET DE L'ENCODEUR -- EN COURS
+
+Teste si degeler l'encodeur (au lieu du linear probing fige) ameliore
+encore le resultat. Necessite un pipeline different : les groupes BRUTS
+(pas encore encodes) precalcules une seule fois (extraire_pointmae_groupes.py,
+meme extraction CPU que extraire_pointmae.py mais sans le forward GPU fige --
+float16 pour la taille, 0,42 Go pour 4320 fenetres) -- seul le
+forward/backward de l'encodeur (poids maintenant entraines) est refait a
+chaque pas, sur GPU (rapide), evitant de refaire l'isolation+FPS/kNN.
+
+Cout mesure : ~5,5s/pas (taille_lot=16) -- ~3h/graine pour le protocole
+complet (2000 pas), ~9h pour 3 graines. Sweep prealable (1 graine, 800 pas,
+sweep_pointmae_finetune.py) lance avant de committer au protocole complet.
+
+RESULTAT DU SWEEP (800 pas, 1 graine) : trajectoire BRUITEE et OSCILLANTE
+-- pic a 0,934 (etape 550, egal au linear probing) puis redescend et
+remonte sans converger clairement (0,891/0,903/0,912/0,900 aux etapes
+600-750), resultat final 0,894. NE DEPASSE PAS le linear probing fige
+(0,934+/-0,006) NI le SVM sur features gelees (0,949) -- et l'instabilite
+de la trajectoire (contrairement au linear probing, tres regulier) suggere
+un risque de sur-apprentissage en degelant un Transformer 12 couches sur
+seulement 864 sequences d'entrainement, meme a taux d'apprentissage tres
+faible (1e-5) -- meme schema que le fine-tuning complet de notre propre
+JEPA, qui effacait deja l'avantage du pre-entrainement (README, section
+"Fine-tuning en aval").
+
+DECISION : ne PAS committer les ~9h necessaires pour un protocole complet
+3 graines -- le signal du sweep (1 graine, 800 pas) est deja assez clair
+(pas d'amelioration, cout beaucoup plus eleve que le linear probing/SVM
+qui sont quasi instantanes une fois les features precalculees) pour ne pas
+justifier l'investissement, surtout alors que le SVM sur features gelees
+(etape 7, 0,949) est DEJA le meilleur resultat et ne coute rien de plus.
+Piste fine-tuning NON retenue -- fichiers conserves
+(entrainer_pointmae_finetune.py/extraire_pointmae_groupes.py/groupes_pointmae.npz)
+pour reference/reprise eventuelle si une meilleure regularisation ou moins
+de sur-apprentissage semblait valoir la peine d'etre testee plus tard.
+
+MEILLEUR RESULTAT FINAL DE LA SESSION : SVM regle sur features Point-MAE
+gelees, 0,949 (split sujet) / 0,926 (split environnement) -- cf. etape 7.
+
+
+SESSION TERMINEE (5 septembre apres-midi) : README.md mis a jour avec
+toutes les sections ci-dessus, y compris la PERCEE finale (etape 6).
+Bilan complet de la session (nuit + apres-midi) :
+  - Spectre Laplacien regle+valide : 0,617 -> 0,659 (ancien meilleur LiDAR-only)
+  - Squelette-plafond (verite-terrain, pas LiDAR-only) verifie anti-fuite : 0,994+/-0,007
+  - Distillation squelette->LiDAR : negatif mais informatif, 0,523+/-0,037,
+    indiscernable du from-scratch -- documente pour eviter de retenter sans
+    nouvelle idee
+  - RANSAC isolation Laplacien : negatif net, 0,659->0,24 -- non adopte
+  - **Transfer learning ShapeNet (Point-MAE fige) : 0,934+/-0,006 (split sujet),
+    0,908+/-0,009 (split environnement) -- NOUVEAU MEILLEUR RESULTAT DU
+    PROJET, vrai LiDAR-only, verifie anti-fuite, depasse la litterature
+    de reference (81-90%)**
+
+Piste rang 4-6 restante si repris (detecteur 3D appris PV-RCNN/OpenPCDet
+pour l'isolation Laplacien) : probablement moins prioritaire maintenant que
+le transfer learning ShapeNet a etabli un nouveau plafond bien plus haut --
+prochaine etape naturelle serait plutot d'essayer le FINE-TUNING complet de
+l'encodeur Point-MAE (pas seulement le linear probing) pour voir si ca
+depasse encore 0,934, ou d'appliquer la meme piste transfer-learning a
+l'isolation Laplacien (features Point-MAE au lieu des valeurs propres du
+Laplacien comme descripteur pour le classifieur classique).

@@ -1,0 +1,39 @@
+sequences train: 864  val: 216
+extraction features train (quadrants)...
+  50/864 sequences  [96.8s]
+  100/864 sequences  [197.1s]
+  150/864 sequences  [304.5s]
+  200/864 sequences  [410.5s]
+  250/864 sequences  [518.2s]
+  300/864 sequences  [625.4s]
+  350/864 sequences  [735.3s]
+  400/864 sequences  [841.8s]
+  450/864 sequences  [941.8s]
+  500/864 sequences  [1041.7s]
+  550/864 sequences  [1139.5s]
+  600/864 sequences  [1239.1s]
+  650/864 sequences  [1336.7s]
+  700/864 sequences  [1433.8s]
+  750/864 sequences  [1534.2s]
+  800/864 sequences  [1639.7s]
+  850/864 sequences  [1748.5s]
+X_train: (3456, 600)  y_train: (3456,)
+extraction features val (quadrants)...
+  50/216 sequences  [121.8s]
+  100/216 sequences  [245.2s]
+  150/216 sequences  [366.7s]
+  200/216 sequences  [490.7s]
+X_val: (864, 600)  y_val: (864,)
+features sauvegardees -> mmfi-src/features_laplacien_v2.npz
+
+=== SVM (rbf, C=1.0) ===
+SVM: accuracy=0.617 precision_macro=0.629 f1_macro=0.616
+
+=== RandomForest (defaut) ===
+RF: accuracy=0.601 precision_macro=0.612 f1_macro=0.596
+
+
+=== RESUME ===
+SVM: accuracy(=notre 'precision')=0.617 precision_macro_sklearn=0.629 f1_macro=0.616
+RF:  accuracy(=notre 'precision')=0.601 precision_macro_sklearn=0.612 f1_macro=0.596
+ENTRAINEMENT_LAPLACIEN_V2_OK

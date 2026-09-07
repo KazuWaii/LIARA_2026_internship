@@ -1,0 +1,30 @@
+features totales (avec nettoyage RANSAC+outlier): X=(8640, 600)
+
+########## SPLIT SUJET, 8 fenetres, AVEC nettoyage RANSAC+outlier ##########
+train: (6912, 600)  val: (1728, 600)  sujets_train=32
+-- SVM par defaut (C=1.0, reference) --
+   accuracy=0.245 f1_macro=0.217
+-- RF par defaut --
+   accuracy=0.251 f1_macro=0.228
+-- SVM (hyperparametres deja tunes: {'kernel': 'rbf', 'C': 3.0, 'gamma': 'scale'}) --
+   accuracy=0.248 f1_macro=0.227
+-- HistGradientBoosting (hyperparametres deja tunes: {'learning_rate': 0.1, 'max_depth': 6, 'max_iter': 400, 'l2_regularization': 0.0, 'random_state': 0}) --
+   accuracy=0.239 f1_macro=0.226
+
+########## SPLIT ENVIRONNEMENT (papier), 8 fenetres, AVEC nettoyage RANSAC+outlier ##########
+train: (6480, 600)  val: (2160, 600)  sujets_train=30
+-- SVM par defaut (C=1.0, reference) --
+   accuracy=0.234 f1_macro=0.205
+-- RF par defaut --
+   accuracy=0.227 f1_macro=0.215
+-- SVM (hyperparametres deja tunes: {'kernel': 'rbf', 'C': 3.0, 'gamma': 'scale'}) --
+   accuracy=0.237 f1_macro=0.214
+-- HistGradientBoosting (hyperparametres deja tunes: {'learning_rate': 0.1, 'max_depth': 6, 'max_iter': 400, 'l2_regularization': 0.0, 'random_state': 0}) --
+   accuracy=0.237 f1_macro=0.227
+
+
+=== RESUME FINAL (avec vs sans nettoyage) ===
+SANS nettoyage (v4, reference) : split_sujet SVM_tune=0.659 HGB_tune=0.649 | split_environnement SVM_tune=0.643 HGB_tune=0.653
+split_sujet_nettoyage: SVM_defaut=0.245  RF_defaut=0.251  SVM_tune=0.248 (f1=0.227)  HGB_tune=0.239 (f1=0.226)
+split_environnement_nettoyage: SVM_defaut=0.234  RF_defaut=0.227  SVM_tune=0.237 (f1=0.214)  HGB_tune=0.237 (f1=0.227)
+ENTRAINEMENT_LAPLACIEN_V5_OK

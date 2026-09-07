@@ -1,0 +1,16 @@
+sequences totales: 1080  nb_fenetres=4  nb_frames_echantillon=8
+extraction CPU (isolation+FPS/kNN) parallele sur 14 processus...
+  100/1080 sequences  [76.1s ecoulees, ~746s restantes]
+  200/1080 sequences  [135.8s ecoulees, ~598s restantes]
+  300/1080 sequences  [190.8s ecoulees, ~496s restantes]
+  400/1080 sequences  [255.4s ecoulees, ~434s restantes]
+  500/1080 sequences  [320.5s ecoulees, ~372s restantes]
+  600/1080 sequences  [384.7s ecoulees, ~308s restantes]
+  700/1080 sequences  [442.4s ecoulees, ~240s restantes]
+  800/1080 sequences  [502.5s ecoulees, ~176s restantes]
+  900/1080 sequences  [571.1s ecoulees, ~114s restantes]
+  1000/1080 sequences  [634.6s ecoulees, ~51s restantes]
+extraction CPU terminee en 679.3s
+groupes: (4320, 8, 64, 32, 3) (0.42 Go)  centres: (4320, 8, 64, 3)
+groupes sauvegardes -> mmfi-src/groupes_pointmae.npz
+EXTRACTION_GROUPES_POINTMAE_OK

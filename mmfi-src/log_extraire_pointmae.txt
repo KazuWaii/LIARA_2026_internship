@@ -1,0 +1,19 @@
+sequences totales: 1080  nb_fenetres=4  nb_frames_echantillon=8
+extraction CPU (isolation+FPS/kNN) parallele sur 14 processus...
+  100/1080 sequences  [46.7s ecoulees, ~457s restantes]
+  200/1080 sequences  [76.5s ecoulees, ~336s restantes]
+  300/1080 sequences  [111.7s ecoulees, ~290s restantes]
+  400/1080 sequences  [150.2s ecoulees, ~255s restantes]
+  500/1080 sequences  [185.5s ecoulees, ~215s restantes]
+  600/1080 sequences  [221.2s ecoulees, ~177s restantes]
+  700/1080 sequences  [255.7s ecoulees, ~139s restantes]
+  800/1080 sequences  [293.0s ecoulees, ~103s restantes]
+  900/1080 sequences  [330.2s ecoulees, ~66s restantes]
+  1000/1080 sequences  [366.6s ecoulees, ~29s restantes]
+extraction CPU terminee en 392.8s -- 1080 sequences valides
+chargement encodeur Point-MAE (ShapeNet pretrain, fige)...
+forward GPU (encodage + pooling mean+max par frame)...
+forward GPU termine en 57.5s
+features: (4320, 8, 768)  labels: (4320,)
+features sauvegardees -> mmfi-src/features_pointmae.npz
+EXTRACTION_POINTMAE_OK

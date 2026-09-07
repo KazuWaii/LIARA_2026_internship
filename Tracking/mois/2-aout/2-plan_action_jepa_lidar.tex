@@ -1,0 +1,295 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+\hypersetup{
+    colorlinks=true,
+    urlcolor=blue,
+    linkcolor=black
+}
+
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\title{Plan d'action --- Modèle général LiDAR (architecture JEPA) \\
+\large Pré-entraînement multi-datasets, puis comparaison \\
+zero-shot / transfer learning / fine-tuning}
+\author{Mathieu Bonneau}
+\date{28 août 2026}
+
+\begin{document}
+
+\maketitle
+
+\section*{Contexte et objectif}
+
+Ce document détaille le plan d'action pour construire un \textbf{modèle général de
+représentation de nuages de points LiDAR}, pré-entraîné de façon auto-supervisée avec une
+architecture de type \textbf{JEPA} (Joint-Embedding Predictive Architecture) sur plusieurs
+datasets publics (voir \texttt{1-lidar\_datasets\_publics.tex}), puis \textbf{évalué selon
+trois régimes} sur le dataset du laboratoire (protocole \texttt{SG\_protocol\_multi\_v1}) :
+zero-shot, transfer learning (linear probing), et fine-tuning complet. L'objectif est de
+quantifier précisément ce qu'apporte chaque étape d'adaptation, et de justifier scientifiquement
+l'intérêt du pré-entraînement général avant de conclure sur la reconnaissance d'activités du
+protocole du labo.
+
+\section{Rappel : architecture JEPA appliquée au LiDAR}
+
+\subsection{Principe général (I-JEPA / V-JEPA)}
+
+Contrairement à un auto-encodeur qui reconstruit les données brutes (pixels, points), une
+architecture JEPA prédit, dans un \textbf{espace latent}, la représentation de portions
+masquées à partir du contexte visible. Trois composants :
+\begin{itemize}
+    \item un \textbf{encodeur de contexte} (entraîné) qui encode les portions visibles ;
+    \item un \textbf{encodeur cible} (copie EMA de l'encodeur de contexte, non rétropropagé)
+    qui encode les portions masquées pour produire la cible de prédiction ;
+    \item un \textbf{prédicteur} qui, à partir des embeddings de contexte, prédit les
+    embeddings cibles des régions masquées.
+\end{itemize}
+Ne pas reconstruire les données brutes évite au modèle de perdre du temps sur des détails
+non sémantiques (bruit du capteur, texture) et concentre l'apprentissage sur la structure
+spatio-temporelle utile à la tâche finale.
+
+\subsection{Adaptation aux nuages de points (inspiration AD-L-JEPA)}
+
+\textbf{AD-L-JEPA} (2025) applique déjà ce principe à des nuages de points LiDAR automobiles
+en prédisant des embeddings en vue \emph{Bird's Eye View} (BEV), plutôt que de reconstruire
+les points. C'est la base méthodologique à reprendre :
+\begin{enumerate}
+    \item Voxelisation du nuage de points en grille BEV (ou range-image, à trancher --- voir
+    \ref{sec:representation}).
+    \item Découpage en \emph{tubelets} spatio-temporels (patch spatial $\times$ fenêtre
+    temporelle), comme les patchs vidéo de V-JEPA.
+    \item Masquage de blocs contigus de tubelets (masquage structuré, pas aléatoire point par
+    point --- cohérent avec la littérature JEPA qui masque des régions larges pour forcer
+    l'apprentissage de contexte global).
+    \item Prédiction des embeddings des tubelets masqués à partir des tubelets visibles.
+\end{enumerate}
+Code de référence à étudier avant implémentation : \url{https://github.com/HaoranZhuExplorer/adljepa}.
+
+\section{Étape 1 --- Harmonisation des données multi-datasets}
+
+\subsection{Choix de représentation}
+\label{sec:representation}
+
+Décision structurante à trancher en premier (voir aussi le plan d'action général) :
+\begin{itemize}
+    \item \textbf{Range-image / image de profondeur} : prolonge directement les scripts déjà
+    prototypés (\texttt{projection\_unitree\_l2\_simple.py}). Compatible nativement avec un
+    transformeur vidéo (V-JEPA original). Sensible à la résolution angulaire du capteur.
+    \item \textbf{Grille BEV / voxel occupancy} : suit AD-L-JEPA, plus robuste au changement de
+    point de vue, coût mémoire plus élevé en 3D+temps.
+\end{itemize}
+Recommandation : commencer par la range-image (réutilisation du pipeline existant, coût de
+développement plus faible), garder la voxel-grid comme alternative si les résultats zero-shot
+sont décevants à cause de la sensibilité au point de vue.
+
+\subsection{Normalisation inter-capteurs}
+
+Les datasets identifiés couvrent des capteurs de 16 à 300 canaux, des fréquences et des
+portées très différentes. Avant tout pré-entraînement :
+\begin{itemize}
+    \item ré-échantillonnage angulaire vers une résolution commune ;
+    \item normalisation de la portée (clipping + mise à l'échelle) ;
+    \item ré-échantillonnage temporel vers une fréquence commune (proche de celle de
+    l'Unitree L2) ;
+    \item recentrage de la zone d'intérêt (BEV recadrée autour de la zone habitée pour les
+    datasets indoor, autour du piéton détecté pour les datasets outdoor).
+\end{itemize}
+C'est le point de vigilance déjà identifié dans l'article III de la revue de littérature
+(chute de performance au changement de capteur/environnement) --- une normalisation explicite
+et documentée est indispensable pour que le pré-entraînement transfère vers l'Unitree L2.
+
+\subsection{Organisation du corpus par tier}
+
+\begin{longtable}{P{2.8cm} P{6cm} P{5.5cm}}
+\toprule
+\textbf{Sous-corpus} & \textbf{Datasets} & \textbf{Rôle dans le pré-entraînement} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Sous-corpus} & \textbf{Datasets} & \textbf{Rôle dans le pré-entraînement} \\
+\midrule
+\endhead
+
+Domaine-proche (Tier 1) &
+MM-Fi, HuCenLife, JRDB, HmPEAR, STCrowd &
+Priors spatio-temporels sur des humains en intérieur/semi-intérieur --- le plus transférable
+vers le protocole du labo \\
+\addlinespace
+
+Complément humain (Tier 2) &
+SLOPER4D, LiDARHuman26M/LiDARCap, Human-M3, CIMI4D, HSC4D, FreeMotion, Waymo (pose) &
+Diversité de poses/mouvements humains, malgré un contexte outdoor éloigné \\
+\addlinespace
+
+Volume générique (Tier 3) &
+ONCE, SemanticKITTI, nuScenes, Argoverse~2, PandaSet &
+Robustesse géométrique générale du nuage de points, échelle nécessaire à un vrai
+pré-entraînement JEPA \\
+
+\bottomrule
+\end{longtable}
+
+\section{Étape 2 --- Pré-entraînement auto-supervisé (JEPA général)}
+
+\subsection{Curriculum d'entraînement}
+
+Pré-entraînement en deux phases plutôt qu'un mélange uniforme des trois tiers :
+\begin{enumerate}
+    \item \textbf{Phase générique} sur le Tier~3 (volume) : apprentissage des priors
+    géométriques bas niveau du nuage de points (formes, dynamique de scène).
+    \item \textbf{Phase de spécialisation} sur les Tiers~1 et~2 (humain-centré) : poursuite du
+    pré-entraînement JEPA à partir des poids de la phase générique, pour orienter les
+    représentations vers la morphologie et les mouvements humains.
+\end{enumerate}
+Cette approche progressive limite le risque qu'un corpus outdoor massif (Tier 3) noie le
+signal humain, beaucoup plus rare dans les données disponibles.
+
+\subsection{Suivi de convergence}
+
+Avant d'investir du temps de calcul dans un entraînement long, valider tôt par
+\textbf{probing linéaire léger} sur un sous-ensemble annoté (MM-Fi) que la perte de
+prédiction latente corrèle bien avec une amélioration de représentation utile. Point de
+décision go/no-go explicite avant de lancer la phase de spécialisation complète.
+
+\section{Étape 3 --- Dataset labo (rappel)}
+
+Collecte selon le protocole \texttt{SG\_protocol\_multi\_v1} adapté au LiDAR (classes filtrées
+selon leur visibilité en nuage de points, cf. plan d'action général, étape A). Ce dataset sert
+uniquement à l'\textbf{évaluation et à l'adaptation} (étapes 4 et 5) --- il n'entre jamais dans
+le corpus de pré-entraînement, pour garantir que les trois régimes ci-dessous mesurent bien un
+transfert de domaine.
+
+\section{Étape 4 --- Protocole de comparaison : zero-shot / transfer learning / fine-tuning}
+
+C'est le cœur scientifique du plan : mesurer, à chaque étape d'adaptation, ce que le
+pré-entraînement général apporte réellement sur les classes du protocole du labo.
+
+\begin{longtable}{P{2.6cm} P{4.5cm} P{4.5cm} P{2.5cm}}
+\toprule
+\textbf{Régime} & \textbf{Ce qui est gelé / entraîné} & \textbf{Données labo nécessaires} & \textbf{Ce que ça mesure} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Régime} & \textbf{Ce qui est gelé / entraîné} & \textbf{Données labo nécessaires} & \textbf{Ce que ça mesure} \\
+\midrule
+\endhead
+
+Zero-shot &
+Encodeur entièrement gelé. Classification par plus-proche-centroïde ou k-NN dans l'espace
+latent (aucun paramètre entraîné sur le labo) &
+Aucune donnée étiquetée pour l'entraînement (uniquement pour construire les centroïdes/prototypes
+de référence, à partir d'un très petit nombre d'exemples par classe) &
+Qualité brute des représentations apprises pendant le pré-entraînement, sans aucune
+adaptation au domaine cible \\
+\addlinespace
+
+Transfer learning (linear probing) &
+Encodeur gelé, seule une tête linéaire (ou petit MLP) est entraînée &
+Dataset labo étiqueté, en faisant varier la fraction utilisée (10\%, 25\%, 50\%, 100\%) &
+Séparabilité linéaire des représentations pré-entraînées vis-à-vis des classes du
+protocole --- indicateur standard de qualité d'un pré-entraînement SSL \\
+\addlinespace
+
+Fine-tuning complet &
+Encodeur dégelé (entièrement ou partiellement, ex. derniers blocs) et tête de classification,
+tous deux entraînés &
+Dataset labo étiqueté complet &
+Performance maximale atteignable, gain réel apporté par le pré-entraînement par rapport à un
+entraînement from scratch \\
+
+\bottomrule
+\end{longtable}
+
+\subsection{Courbes d'apprentissage few-shot}
+
+Pour chaque régime, tracer la performance (accuracy/F1) en fonction de la fraction de données
+labo étiquetées utilisées. Cela permet de répondre à la question opérationnelle du labo :
+\emph{combien de données faut-il collecter pour atteindre une performance acceptable ?} --- un
+bon pré-entraînement doit réduire nettement le nombre d'exemples nécessaires par classe.
+
+\section{Étape 5 --- Baselines de comparaison}
+
+Pour situer l'apport du pré-entraînement JEPA, comparer aux méthodes déjà recensées dans la
+revue de littérature, réimplémentées ou approximées sur le dataset labo :
+\begin{itemize}
+    \item \textbf{From scratch} : même architecture d'encodeur, poids aléatoires, entraînée
+    uniquement sur le dataset labo (borne basse, sans aucun pré-entraînement) ;
+    \item \textbf{Spectre laplacien + SVM/RF/MLP} (article II de la revue) ;
+    \item \textbf{PointNet/PointNet++ + One-Class SVM} (article III de la revue), si
+    adaptable à la classification multiclasse plutôt qu'à la seule détection de personne ;
+    \item \textbf{MDNLM + squelette + CNN-LSTM} (article I), si une estimation de squelette
+    est disponible sur les données labo.
+\end{itemize}
+
+\section{Métriques et analyse}
+
+\begin{itemize}
+    \item Accuracy, precision, recall, F1-score (macro, pour tenir compte du déséquilibre
+    entre classes du protocole) ;
+    \item Matrices de confusion par régime et par fraction de données (few-shot) ;
+    \item Écart de performance zero-shot~$\rightarrow$~linear probing~$\rightarrow$~fine-tuning,
+    à interpréter comme une décomposition de l'apport du pré-entraînement général vs de
+    l'adaptation au domaine labo ;
+    \item Si retenu, analyse par niveau d'occlusion (vue dégagée / partielle / forte), en
+    cohérence avec l'axe de contribution scientifique dual-LiDAR déjà proposé.
+\end{itemize}
+
+\section{Calendrier indicatif}
+
+\begin{longtable}{P{3cm} P{11.5cm}}
+\toprule
+\textbf{Période} & \textbf{Focus} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Période} & \textbf{Focus} \\
+\midrule
+\endhead
+
+Sept. (sem. 1--2) & Choix de représentation (\ref{sec:representation}), pipeline
+d'harmonisation multi-datasets, téléchargement/accès aux datasets Tier~1--3 \\
+\addlinespace
+Sept. (sem. 3--4) & Étude approfondie du code AD-L-JEPA, adaptation de l'architecture JEPA
+au pipeline range-image/BEV \\
+\addlinespace
+Oct. & Pré-entraînement phase générique (Tier~3) puis spécialisation (Tiers~1--2) ;
+probing linéaire de validation en continu \\
+\addlinespace
+Nov. & Collecte finalisée du dataset labo ; mise en place des trois régimes d'évaluation
+(zero-shot, transfer learning, fine-tuning) et des baselines \\
+\addlinespace
+Déc. & Courbes few-shot, analyse comparative complète, rédaction \\
+
+\bottomrule
+\end{longtable}
+
+\section{Risques et points de vigilance}
+
+\begin{itemize}
+    \item \textbf{Volume du corpus humain-centré} : probablement insuffisant pour un
+    pré-entraînement JEPA à grande échelle --- le curriculum en deux phases (Étape~2) est une
+    mitigation, pas une garantie.
+    \item \textbf{Coût de calcul} : le pré-entraînement JEPA sur plusieurs datasets volumineux
+    (Tier~3) peut être lourd --- prévoir un modèle réduit (ViT small) et vérifier les
+    ressources GPU disponibles avant de fixer l'échelle du modèle.
+    \item \textbf{Zero-shot potentiellement peu informatif} : si l'écart entre datasets
+    d'entraînement et le domaine labo est trop grand (résolution, échelle, activités), le
+    régime zero-shot pourrait être proche du hasard --- documenter ce résultat reste
+    scientifiquement utile (il quantifie l'écart de domaine).
+    \item \textbf{Normalisation inter-capteurs imparfaite} : reste le principal facteur de
+    risque identifié à la fois dans la revue de littérature et dans cette recherche de
+    datasets --- à traiter en priorité avant le pré-entraînement, pas après.
+\end{itemize}
+
+\end{document}

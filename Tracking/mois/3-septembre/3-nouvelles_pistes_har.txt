@@ -1,0 +1,218 @@
+Nouvelles pistes HAR : recherche, squelette auxiliaire, spectre Laplacien
+Mathieu Bonneau — 4 septembre 2026 (matin, 6h d'autonomie complete)
+
+
+CONTEXTE ET DEMANDE
+
+"I am gonna be away for 6 hours, find any solution for my har project : you
+have full permissions> You can try new architecture fitting our datasets
+sizes, etc... you have full permissions !" -- suite au constat de la nuit
+precedente (pre-entrainement JEPA MM-Fi+JRDB, x1 et x2, statistiquement
+indiscernable de from-scratch sur 3 graines chacun, cf. note 2).
+
+
+RECHERCHE PREALABLE (workflow multi-agents, 6 rapports)
+
+Avant d'agir : recherche approfondie sur 5 angles en parallele (benchmarks
+MM-Fi publies, distillation par information privilegiee/squelette,
+architectures petits-echantillons, surveys LiDAR-HAR 2023-2025,
+apprentissage multi-taches), puis synthese. Details complets dans le
+journal du workflow (session), resume ici :
+
+1. DECOUVERTE MAJEURE : la litterature MM-Fi montre un ecart enorme entre
+   notre 0,514 (fine-tuning complet) et ce qui est publie comme atteignable
+   en classification DIRECTE depuis le LiDAR brut MM-Fi -- 81 a 90%
+   (arXiv:2509.23255, "LiDAR-based Human Activity Recognition through
+   Laplacian Spectral Analysis", 2025). L'article original MM-Fi (NeurIPS
+   2023, arXiv:2305.10345) ne rapporte que 54,44%/35,97% en LiDAR -- mais
+   via un pipeline squelette-proxy (AGCN/CTRGCN), pas de la classification
+   directe. Notre 0,514 semblait "raisonnable" compare a cette derniere
+   reference, mais la vraie cible est 81-90%.
+
+2. Squelette comme information privilegiee (LUPI) : evidence mitigee.
+   MTGEA (+4,35pts avec fusion attention) mais Shi&Kim (CVPR 2017, PRNN) :
+   un signal auxiliaire NAIF peut degrader la performance (-8 a -10pts) sans
+   mecanisme de "bridging" -- risque explicitement signale pour notre
+   approche multi-tache naive.
+
+3. Architectures petits-echantillons : PointNet++/DGCNN standards a cette
+   echelle (quelques milliers d'echantillons), pretraining ShapeNet/
+   ModelNet40 utile surtout quand le jeu de donnees cible est petit ET que
+   la source de pretraining est plus grande/differente -- coherent avec
+   notre echec JEPA (pretraine ET fine-tune sur le MEME petit jeu de
+   donnees MM-Fi).
+
+4. Surveys LiDAR-HAR 2023-2025 : aucun papier JEPA-pour-action-recognition-
+   point-cloud trouve (vrai vide, pas juste absence de recherche). SSL sur
+   petit jeu homogene (MaST-Pre, ~270 clips) : gain quasi-nul (+0,35pt) --
+   MEME PATTERN que notre resultat JEPA MM-Fi (864 sequences). Notre null
+   result est donc EXPLIQUE par la litterature, pas un bug d'implementation.
+
+5. Multi-tache classification+regression : la regression auxiliaire dense
+   (Luvizon et al. CVPR'18) aide precisement quand N est petit -- exactement
+   notre regime (864 sequences). Poids fixe recommande plutot que
+   ponderation automatique (GradNorm/incertitude) en premiere approche.
+
+SYNTHESE (plan classe par ordre de priorite) :
+  Rang 1 : regression auxiliaire du squelette (signal dense jamais utilise)
+  Rang 2 : arreter de retoucher JEPA -- le null result est attendu, pas un bug
+  Rang 3 (si temps) : inductive bias local-geometrie (DGCNN-style)
+  Seuil de succes : gain > 0,08-0,10 au-dessus de 0,514 (2x le bruit inter-
+  graines mesure la nuit precedente, ±0,044) pour etre distinguable du bruit
+
+
+DECOUVERTE ANNEXE : LE SQUELETTE VERITE-TERRAIN N'A JAMAIS ETE UTILISE
+
+MM-Fi fournit ground_truth.npy (T,17,3) par sequence -- squelette 3D COCO-17,
+parfaitement aligne frame-a-frame avec le LiDAR (verifie : 297 frames LiDAR
+== 297 frames squelette sur E01/S01/A01). Jamais exploite jusqu'ici (seul le
+label d'action, 1 valeur/sequence, servait de signal supervise).
+
+Tentative de recadrage du nuage LiDAR brut sur la bounding-box du squelette
+(pour isoler la personne du fond) : 0 points en commun -- le squelette est
+dans un repere DIFFERENT du nuage LiDAR brut (skeleton bbox ~[-0.2,0.2] x
+[-0.77,0.77] x [2.95,3.21], point cloud brut ~[2.0,4.0] x [-2.5,2.5] x
+[-1.2,0.55] -- axes visiblement permutes/non-calibres entre les deux
+modalites dans le sous-ensemble "MMFi_lidar_only" telecharge). PAS de
+calibration inter-capteurs fournie dans ce sous-ensemble -- le squelette
+n'est donc PAS utilisable pour recadrer le nuage de points sans
+transformation supplementaire non resolue cette nuit (pas de temps pour
+l'estimer -- necessiterait une correlation trajectoire-squelette vs
+trajectoire-centroide-nuage sur toute la sequence, ou les fichiers de
+calibration MM-Fi non telecharges).
+
+
+PISTE A : REGRESSION AUXILIAIRE DU SQUELETTE (multi-tache, deep learning)
+
+squelette_dataset.py (nouveau) : fenetre LiDAR grille + squelette
+sous-echantillonne (moyenne par paires de frames, meme reduction temporelle
+que le tubelet embedding noyau_t=2) et CENTRE sur son propre centroide par
+frame (pose relative -- pas position absolue, meme mise en garde documentee
+pour la methode points : un embedding de position absolu peut servir de
+raccourci "ou dans la piece" plutot que d'apprendre la pose elle-meme).
+
+modele_squelette.py (nouveau) : encodeur partage (tokenizer + Transformer,
+memes briques que ModeleJEPA, PAS un modele JEPA -- pas de masquage, pas
+d'encodeur cible EMA, pas de predicteur, entrainement supervise direct) +
+deux tetes -- classification (27 actions, pooling mean+max, meme protocole
+que evaluation.py) et regression squelette (MLP par pas de temps sur
+pooling mean+max spatial -> (nb_t,17,3)).
+
+entrainer_squelette.py (nouveau) : perte conjointe CE + lambda*MSE, from
+scratch uniquement (le mirroir JEPA n'apporte rien, cf. note 2 -- pas la
+peine d'y superposer davantage de complexite, coherent avec le Rang 2 de la
+synthese).
+
+Sweep lambda (sweep_lambda_squelette.py, 800 pas, 1 graine, log_sweep_lambda.txt) :
+
+  lambda=0.1  precision=0.421  f1=0.407
+  lambda=1.0  precision=0.523  f1=0.545   <- retenu
+  lambda=10.0 precision=0.472  f1=0.453
+
+Run complet retenu (entrainer_squelette_seeds.py, lambda=1.0, 2000 pas x 3
+graines, memes graines 0/1/2 que toutes les autres comparaisons de la nuit) :
+
+  graine 0 : precision=0.546 f1=0.547
+  graine 1 : precision=0.560 f1=0.552
+  graine 2 : precision=0.542 f1=0.577
+  moyenne +/- ecart-type : precision=0.549 +/- 0.009  f1=0.559 +/- 0.016
+
+  reference from-scratch (classification seule, 3 graines, deja mesuree la
+  nuit precedente) : precision=0.509 +/- 0.044  f1=0.519 +/- 0.042
+
+RESULTAT LE PLUS SOLIDEMENT ETABLI DE LA NUIT : contrairement a TOUTES les
+comparaisons JEPA/JRDB precedentes (ou le bruit inter-graines, +/-0.04-0.05,
+rendait toute amelioration apparente indiscernable du hasard), ici la
+moyenne progresse (+0.040) ET l'ecart-type se resserre nettement (+/-0.009
+contre +/-0.044, facteur ~5) -- les 3 graines squelette (0.542 a 0.560)
+sont beaucoup plus coherentes entre elles que n'importe quelle autre
+comparaison multi-graines de cette nuit ou de la precedente. Le signal
+auxiliaire dense (squelette, jamais utilise jusqu'ici malgre sa presence
+dans le dataset depuis le debut) semble a la fois ameliorer legerement la
+moyenne ET stabiliser l'entrainement -- coherent avec le rapport de
+recherche "multitask_joint_training" (les taches de regression auxiliaires
+denses agissent comme regularisateur en regime de donnees limite, cf.
+Luvizon et al. CVPR'18).
+
+Checkpoints sauvegardes : checkpoints_squelette_lambda1_graine{0,1,2}.pt.
+
+
+PISTE B : SPECTRE DU LAPLACIEN (classique, non deep learning) -- MEILLEUR RESULTAT ABSOLU
+
+laplacien_spectral.py (nouveau) : reimplementation simplifiee de
+arXiv:2509.23255 (code source du papier non disponible -- "coming soon" au
+4 septembre, github.com/Arritmic/oulu-pointcloud-har verifie vide) a partir
+de la description methodologique extraite par WebFetch de l'article (radius
+epsilon-graphe r=0.20m -- valeur optimale du papier, Laplacien combinatoire
+L=D-A, K_val=30 valeurs propres, K_vec=40 vecteurs propres x 7 statistiques
+chacun, partition en 4 quadrants spatiaux lateral x vertical + corps
+entier).
+
+ISOLATION DE LA PERSONNE (probleme decouvert cette nuit, cf. section
+annexe ci-dessus) : le nuage LiDAR brut MM-Fi n'est PAS recadre sur la
+personne -- ~1100-1200 points/frame, plusieurs metres d'etendue (mur/sol
+inclus), le squelette ne pouvant pas servir de repere de recadrage (repere
+different, non calibre). Solution auto-contenue (pas d'information
+privilegiee, applicable a l'usage reel) : soustraction de fond (voxels
+10cm occupes dans >80% des frames d'UNE sequence = statique = mur/sol,
+retires) puis DBSCAN pour isoler le plus gros amas spatialement coherent
+(la personne, en mouvement contrairement au fond) -- reduit a ~50-150
+points/frame apres isolation, etendue verticale ~1,75m (coherent avec une
+personne debout).
+
+Agregation temporelle : 4 fenetres/sequence, 8 frames sous-echantillonnees
+par fenetre (cout domine par la decomposition spectrale dense, ~0.02-0.05s/
+frame-eval), statistiques moyenne/ecart-type/min/max. Classifieur : SVM
+(rbf, C=1.0) et RandomForest (defaut), MEME split train/val que le reste du
+projet (sujets tenus a l'ecart, decouper_train_val) -- DIFFERENT du split
+"30 sujets E1-E3/10 sujets E4" du papier, a garder en tete dans
+l'interpretation.
+
+RESULTATS (ablation, meme logique que le papier) :
+
+  v1 -- corps entier seul (entrainer_laplacien.py, log_laplacien.txt) :
+    SVM  accuracy=0.218 precision_macro=0.215 f1_macro=0.200
+    RF   accuracy=0.205 precision_macro=0.188 f1_macro=0.189
+
+  v2 -- + 4 quadrants spatiaux (entrainer_laplacien_v2.py, log_laplacien_v2.txt) :
+    SVM  accuracy=0.617 precision_macro=0.629 f1_macro=0.616
+    RF   accuracy=0.601 precision_macro=0.612 f1_macro=0.596
+
+  v3 -- + statistiques vecteurs propres, 6200 dims (entrainer_laplacien_v3.py,
+    log_laplacien_v3.txt) :
+    SVM  accuracy=0.590 precision_macro=0.600 f1_macro=0.586
+    RF   accuracy=0.611 precision_macro=0.617 f1_macro=0.605
+
+LECTURE : v1 confirme le papier dans le MAUVAIS sens -- sans partition
+spatiale, le signal est noye, bien en-dessous de notre 0,514 deep learning
+(coherent avec le papier : leur "corps entier seul" plafonne a 61% contre
+94% avec quadrants sur le 13-classes -- l'ablation la plus impactante).
+
+v2 confirme le papier dans le BON sens et de facon spectaculaire : 4
+quadrants -> 0.617, BAT notre meilleur resultat deep learning (0,514) de 10
+points, avec une methode entierement classique (pas de GPU, extraction de
+features ~25-30 min CPU total pour 1080 sequences, entrainement SVM en
+quelques secondes). C'est le meilleur resultat HAR du projet a ce jour.
+
+v3 NE confirme PAS le papier -- ajouter les statistiques de vecteurs
+propres (deuxieme levier du papier, +6pts sur leur 13-classes) ne donne
+AUCUN gain net (SVM meme legerement pire : 0,590 vs 0,617 ; RF quasi
+identique : 0,611 vs 0,601) malgre 6200 dims contre 120. Lecture honnete :
+probablement du sur-ajustement (3456 echantillons d'entrainement pour 6200
+dims, hyperparametres SVM/RF par defaut, pas de recherche de grille) plutot
+qu'une vraie absence de signal dans les vecteurs propres -- le papier a
+probablement optimise ses hyperparametres, pas nous, faute de temps. v2
+(quadrants seuls) retenu comme MEILLEUR RESULTAT et reference du projet.
+
+PRUDENCE METHODOLOGIQUE A NOTER (pour eviter de sur-vendre) : split
+train/val different du papier (sujets vs environnements -- pas directement
+comparable a leurs 90,3%), une seule extraction de features par version
+(deterministe a donnees fixees, mais pas de repetition avec split
+alternatif pour verifier la robustesse), fenetrage simplifie (4
+fenetres/sequence sous-echantillonnees plutot que le stride dense du
+papier, absence des donnees de pose reelles -- notre DBSCAN d'isolation de
+personne est une approximation, pas la detection de personne du papier
+original qui n'est pas documentee dans l'abstract/HTML disponibles).
+PROCHAINE ETAPE naturelle si repris : valider avec un split alternatif
+(par environnement, comme le papier) et/ou plus de fenetres par sequence
+pour confirmer que 0,617 n'est pas une coincidence de ce split precis.

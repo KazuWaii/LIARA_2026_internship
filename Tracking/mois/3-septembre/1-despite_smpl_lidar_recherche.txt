@@ -1,0 +1,126 @@
+DeSPITE, LIPD, AMASS : piste de donnees synthetiques SMPL -> LiDAR
+Mathieu Bonneau — 3 septembre 2026 (nuit)
+
+
+CONTEXTE
+
+Suite a la reconstruction V-JEPA de la methode grille (cf. mmfi-src/README.md,
+section "Reconstruction V-JEPA"), le linear probing sur MM-Fi seul reste
+decevant (0,120 pre-entraine vs 0,102 aleatoire, quasi egalite). Lecture de
+DeSPITE (ICCV 2025, arXiv:2506.13897) pour voir comment un travail recent
+combine plusieurs datasets LiDAR/mocap pour l'apprentissage de representations
+humaines, et si leur recette est directement reutilisable.
+
+
+CE QU'EST DESPITE
+
+Alignement contrastif multi-modal (style CLIP), PAS une architecture JEPA :
+quatre encodeurs (point cloud via PST-Transformer+tete SimCLR, IMU via LSTM
+2 couches, squelette via encodeur ACTOR, texte via CLIP gele) projetes dans un
+espace partage a 512 dimensions, perte InfoNCE (alignement texte + alignement
+pair-a-pair entre modalites). Pas de masquage ni de prediction — different de
+notre approche, donc pas un precedent architectural direct, mais deux
+trouvailles empiriques directement utiles :
+
+1. Le LINEAR PROBING SOUS-ESTIME l'apport du pre-entrainement. Citation
+   directe : "linear probing shows weaker performance, indicating pretraining
+   benefits accumulate through fine-tuning." Leurs gains fine-tunes sur
+   HMPEAR/MSR-Action3D (+1,4 a +4,7 points) sont nettement plus nets qu'en
+   probing lineaire seul. Action : mode fine-tuning ajoute a evaluation.py le
+   soir meme (geler_encodeur=False, LR separe pour l'encodeur), pour retester
+   l'ecart pre-entraine/aleatoire avec l'encodeur autorise a s'adapter plutot
+   que juste une tete lineaire sur features figees.
+
+2. Leur corpus d'entrainement (LIPD-Babel) atteint ~500k sequences
+   d'entrainement — contre nos 864 sequences MM-Fi. Cet ecart d'echelle a lui
+   seul peut expliquer une bonne partie du fosse de performance observe.
+
+
+LIPD : IMPASSE POUR REPRODUIRE LA METHODE EXACTE
+
+LIPD (dataset utilise par DeSPITE, 4DVLab/LIP sur GitHub) combine captures
+LiDAR reelles ET nuages de points SYNTHETIQUES generes a partir de parametres
+de pose SMPL (sur DIP-IMU, LiDARHuman26M, AIST++, sous-ensembles AMASS —
+ACCAD, BMLMovi, CMU, TotalCapture). C'est exactement l'idee : simuler des
+nuages LiDAR a partir de mouvements de capture de mouvement existants, bien
+plus abondants et faciles a obtenir que du LiDAR reellement capture.
+
+Verifie en detail (recherche du 3 septembre, agent dedie) : le depot GitHub ne
+contient AUCUN code de simulation — seulement le chargement de nuages de
+points DEJA generes (fichiers .bin/.pkl telecharges tels quels). Le papier
+(arXiv:2205.15410) renvoie a "l'annexe" pour les details de simulation, mais
+aucune annexe n'existe dans le PDF arXiv (v1 et v2 verifies) — probablement
+seulement dans le supplement IEEE TVCG 2023, payant. Piste fermee pour
+reproduire leur methode exacte sans contacter les auteurs.
+
+
+AMASS : ACCESSIBLE RAPIDEMENT (PAS COMME JRDB/HMPEAR)
+
+AMASS (amass.is.tue.mpg.de, Max Planck) unifie 15 corpus de capture de
+mouvement optique en parametres SMPL+H coherents : ~346 sujets, ~11 451
+sequences, ~41,5 heures, activites variees (locomotion, gestes, sport, danse,
+manipulation d'objets). Formulaire d'inscription simple (email + mot de passe
++ case licence non-commerciale), AUCUNE mention d'approbation manuelle ou de
+champ d'affiliation institutionnelle — rien a voir avec le processus JRDB/
+HmPEAR. Complication reelle mais mineure : les modeles de corps SMPL/SMPL-X/
+MANO necessitent une inscription SEPAREE (meme groupe MPI, meme type de
+formulaire simple) — donc 2-3 comptes gratuits a creer plutot qu'un seul,
+tous sous licence recherche non-commerciale stricte (pas de redistribution).
+
+>>> BLOQUANT POUR MOI (Claude) : creer des comptes / accepter des licences
+    au nom de l'utilisateur est une action interdite, meme avec permission
+    explicite -- cf. les regles de securite de l'agent. Ces inscriptions
+    doivent etre faites par Mathieu lui-meme (2-3 formulaires courts,
+    faisable en quelques minutes chacun d'apres ce qui est visible
+    publiquement sur les pages d'inscription).
+
+
+SIMULATION LIDAR : PAS D'OUTIL "CLE EN MAIN", MAIS UNE BRIQUE SOLIDE EXISTE
+
+Aucun outil open-source reutilisable et generique pour "scanner un maillage
+SMPL avec un LiDAR rotatif multi-faisceaux" n'a ete trouve. Quatre papiers
+recents (DAPT, UniPVU-Human, LiCamPose, ReMP) ont chacun reimplemente une
+version interne, non publiee, du meme pipeline (maillage SMPL + lancer de
+rayons -> nuage LiDAR synthetique) — confirme que c'est un concept bien
+compris mais jamais publie comme bibliotheque reutilisable.
+
+Brique recommandee : Open3D `t.geometry.RaycastingScene` (backend Embree,
+Apache-2.0, maintenu activement). Fournit le lancer de rayons contre un
+maillage ; il manque seulement un generateur de grille de rayons
+azimut x elevation (LiDAR rotatif) -- calcul vectoriel simple, a ecrire
+soi-meme (confirme : meme PyTorch3D n'a jamais implemente cet utilitaire,
+issue ouverte depuis 2020 jamais resolue). Alternative plus legere :
+trimesh + ray_pyembree.
+
+Estimation d'effort (a partir de la recherche du 3 septembre) :
+  - Prototype 1 image fixe (1 pose SMPL -> 1 nuage de points) : 1-2 jours.
+  - Simulateur basique sur une sequence AMASS complete (capteur mobile,
+    plusieurs canaux, bruit/occlusion simples) : ~1 semaine.
+  - Fidelite a un capteur reel precis (distorsion de mouvement type
+    rolling-shutter, intensite, bruit valide empiriquement) : echelle
+    "contribution de papier de recherche", pas un projet d'une semaine.
+
+
+PROCHAINE ETAPE CONCRETE
+
+1. Mathieu : creer les comptes AMASS + SMPL (et SMPL-X/MANO si besoin) --
+   quelques formulaires courts, pas d'approbation a attendre.
+2. FAIT (3 septembre, nuit) : prototype du moteur de lancer de rayons
+   (mmfi-src/lidar_sim.py, trimesh+rtree) -- `generer_rayons_lidar` (grille
+   azimut x elevation, meme convention de repere que tokenisation.py) +
+   `scanner_maillage` (premier impact par rayon = occlusion naturelle).
+   Valide sur un maillage de test generique (capsule, pas de SMPL) : grille
+   32 canaux x 360 azimuts, ~2% de rayons touchant un corps a 3m, silhouette
+   coherente (x/y/z bornes plausibles). Pret a recevoir de vrais maillages
+   SMPL des que les donnees AMASS sont disponibles -- il suffira de charger
+   les sommets/faces SMPL par frame (via `smplx`/`human_body_prior`, cf.
+   github.com/nghorbani/amass) et de les passer a `scanner_maillage` a la
+   place de la capsule de test.
+3. Une fois des sequences AMASS reelles disponibles : valider visuellement
+   contre les nuages MM-Fi/ONCE deja vus pour calibrer une grille de rayons
+   plausible (canaux, FOV, portee) approchant l'Unitree L2 du labo.
+4. Si concluant : integrer comme nouvelle source de donnees dans
+   dataset_jepa.py (meme pattern que once_dataset.py), tester le
+   pre-entrainement MM-Fi + synthetique-AMASS, re-comparer en linear probing
+   ET en fine-tuning (les deux modes desormais disponibles dans
+   evaluation.py).

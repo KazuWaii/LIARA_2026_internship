@@ -1,0 +1,30 @@
+features totales: X=(8640, 600)
+
+########## SPLIT SUJET (8 derniers sujets val, comme avant) -- 8 fenetres/sequence ##########
+train: (6912, 600)  val: (1728, 600)  sujets_train=32
+-- SVM par defaut (C=1.0, reference) --
+   accuracy=0.631 f1_macro=0.628
+-- RF par defaut --
+   accuracy=0.609 f1_macro=0.601
+-- SVM (hyperparametres deja tunes: {'kernel': 'rbf', 'C': 3.0, 'gamma': 'scale'}) --
+   accuracy=0.659 f1_macro=0.655
+-- HistGradientBoosting (hyperparametres deja tunes: {'learning_rate': 0.1, 'max_depth': 6, 'max_iter': 400, 'l2_regularization': 0.0, 'random_state': 0}) --
+   accuracy=0.649 f1_macro=0.644
+
+########## SPLIT ENVIRONNEMENT (E01-E03 train / E04 val, protocole du papier) -- 8 fenetres/sequence ##########
+train: (6480, 600)  val: (2160, 600)  sujets_train=30
+-- SVM par defaut (C=1.0, reference) --
+   accuracy=0.625 f1_macro=0.623
+-- RF par defaut --
+   accuracy=0.610 f1_macro=0.605
+-- SVM (hyperparametres deja tunes: {'kernel': 'rbf', 'C': 3.0, 'gamma': 'scale'}) --
+   accuracy=0.643 f1_macro=0.641
+-- HistGradientBoosting (hyperparametres deja tunes: {'learning_rate': 0.1, 'max_depth': 6, 'max_iter': 400, 'l2_regularization': 0.0, 'random_state': 0}) --
+   accuracy=0.653 f1_macro=0.650
+
+
+=== RESUME FINAL ===
+reference anterieure (4 fenetres, split sujet) : SVM_defaut=0.617 SVM_tune=0.638 HGB_tune=0.649 (meilleur a ce jour)
+split_sujet_8fenetres: SVM_defaut=0.631  RF_defaut=0.609  SVM_tune=0.659 (f1=0.655)  HGB_tune=0.649 (f1=0.644)
+split_environnement: SVM_defaut=0.625  RF_defaut=0.610  SVM_tune=0.643 (f1=0.641)  HGB_tune=0.653 (f1=0.650)
+ENTRAINEMENT_LAPLACIEN_V4_OK

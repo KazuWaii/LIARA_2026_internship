@@ -1,0 +1,64 @@
+
+=== lambda=0.1 ===
+  [squelette graine=0] etape    0/800  ce=3.543 mse=0.1241  precision_val=0.037 f1_macro_val=0.003 mse_val=0.0602
+  [squelette graine=0] etape   50/800  ce=3.326 mse=0.0086  precision_val=0.037 f1_macro_val=0.005 mse_val=0.0086
+  [squelette graine=0] etape  100/800  ce=2.516 mse=0.0106  precision_val=0.102 f1_macro_val=0.091 mse_val=0.0137
+  [squelette graine=0] etape  150/800  ce=1.126 mse=0.0068  precision_val=0.259 f1_macro_val=0.256 mse_val=0.0115
+  [squelette graine=0] etape  200/800  ce=0.835 mse=0.0057  precision_val=0.370 f1_macro_val=0.361 mse_val=0.0094
+  [squelette graine=0] etape  250/800  ce=0.621 mse=0.0056  precision_val=0.481 f1_macro_val=0.501 mse_val=0.0075
+  [squelette graine=0] etape  300/800  ce=0.350 mse=0.0050  precision_val=0.444 f1_macro_val=0.420 mse_val=0.0078
+  [squelette graine=0] etape  350/800  ce=0.515 mse=0.0036  precision_val=0.426 f1_macro_val=0.448 mse_val=0.0069
+  [squelette graine=0] etape  400/800  ce=0.268 mse=0.0037  precision_val=0.431 f1_macro_val=0.413 mse_val=0.0069
+  [squelette graine=0] etape  450/800  ce=0.586 mse=0.0037  precision_val=0.468 f1_macro_val=0.454 mse_val=0.0069
+  [squelette graine=0] etape  500/800  ce=0.205 mse=0.0036  precision_val=0.463 f1_macro_val=0.468 mse_val=0.0069
+  [squelette graine=0] etape  550/800  ce=0.439 mse=0.0034  precision_val=0.389 f1_macro_val=0.388 mse_val=0.0073
+  [squelette graine=0] etape  600/800  ce=0.180 mse=0.0033  precision_val=0.468 f1_macro_val=0.467 mse_val=0.0066
+  [squelette graine=0] etape  650/800  ce=0.160 mse=0.0029  precision_val=0.477 f1_macro_val=0.477 mse_val=0.0067
+  [squelette graine=0] etape  700/800  ce=0.124 mse=0.0034  precision_val=0.495 f1_macro_val=0.499 mse_val=0.0071
+  [squelette graine=0] etape  750/800  ce=0.272 mse=0.0031  precision_val=0.514 f1_macro_val=0.528 mse_val=0.0059
+RESULTAT_SWEEP lambda=0.1 precision=0.421 f1=0.407 mse=0.0063
+
+=== lambda=1.0 ===
+  [squelette graine=0] etape    0/800  ce=3.543 mse=0.1241  precision_val=0.037 f1_macro_val=0.003 mse_val=0.0512
+  [squelette graine=0] etape   50/800  ce=3.331 mse=0.0086  precision_val=0.056 f1_macro_val=0.018 mse_val=0.0087
+  [squelette graine=0] etape  100/800  ce=2.618 mse=0.0105  precision_val=0.093 f1_macro_val=0.077 mse_val=0.0121
+  [squelette graine=0] etape  150/800  ce=1.428 mse=0.0079  precision_val=0.324 f1_macro_val=0.311 mse_val=0.0103
+  [squelette graine=0] etape  200/800  ce=0.695 mse=0.0059  precision_val=0.366 f1_macro_val=0.337 mse_val=0.0101
+  [squelette graine=0] etape  250/800  ce=0.557 mse=0.0059  precision_val=0.440 f1_macro_val=0.468 mse_val=0.0083
+  [squelette graine=0] etape  300/800  ce=0.509 mse=0.0047  precision_val=0.440 f1_macro_val=0.421 mse_val=0.0075
+  [squelette graine=0] etape  350/800  ce=0.493 mse=0.0036  precision_val=0.426 f1_macro_val=0.452 mse_val=0.0069
+  [squelette graine=0] etape  400/800  ce=0.201 mse=0.0037  precision_val=0.435 f1_macro_val=0.422 mse_val=0.0069
+  [squelette graine=0] etape  450/800  ce=0.495 mse=0.0037  precision_val=0.477 f1_macro_val=0.475 mse_val=0.0065
+  [squelette graine=0] etape  500/800  ce=0.258 mse=0.0038  precision_val=0.486 f1_macro_val=0.491 mse_val=0.0064
+  [squelette graine=0] etape  550/800  ce=0.383 mse=0.0033  precision_val=0.523 f1_macro_val=0.520 mse_val=0.0065
+  [squelette graine=0] etape  600/800  ce=0.163 mse=0.0031  precision_val=0.481 f1_macro_val=0.461 mse_val=0.0063
+  [squelette graine=0] etape  650/800  ce=0.139 mse=0.0030  precision_val=0.519 f1_macro_val=0.510 mse_val=0.0064
+  [squelette graine=0] etape  700/800  ce=0.104 mse=0.0032  precision_val=0.528 f1_macro_val=0.528 mse_val=0.0068
+  [squelette graine=0] etape  750/800  ce=0.226 mse=0.0028  precision_val=0.546 f1_macro_val=0.559 mse_val=0.0058
+RESULTAT_SWEEP lambda=1.0 precision=0.523 f1=0.545 mse=0.0062
+
+=== lambda=10.0 ===
+  [squelette graine=0] etape    0/800  ce=3.543 mse=0.1241  precision_val=0.037 f1_macro_val=0.003 mse_val=0.0479
+  [squelette graine=0] etape   50/800  ce=3.324 mse=0.0085  precision_val=0.037 f1_macro_val=0.003 mse_val=0.0087
+  [squelette graine=0] etape  100/800  ce=2.535 mse=0.0094  precision_val=0.162 f1_macro_val=0.153 mse_val=0.0106
+  [squelette graine=0] etape  150/800  ce=1.204 mse=0.0065  precision_val=0.366 f1_macro_val=0.379 mse_val=0.0105
+  [squelette graine=0] etape  200/800  ce=0.617 mse=0.0052  precision_val=0.426 f1_macro_val=0.429 mse_val=0.0089
+  [squelette graine=0] etape  250/800  ce=0.507 mse=0.0050  precision_val=0.472 f1_macro_val=0.466 mse_val=0.0083
+  [squelette graine=0] etape  300/800  ce=0.399 mse=0.0047  precision_val=0.542 f1_macro_val=0.521 mse_val=0.0076
+  [squelette graine=0] etape  350/800  ce=0.537 mse=0.0037  precision_val=0.435 f1_macro_val=0.455 mse_val=0.0070
+  [squelette graine=0] etape  400/800  ce=0.232 mse=0.0034  precision_val=0.486 f1_macro_val=0.482 mse_val=0.0068
+  [squelette graine=0] etape  450/800  ce=0.598 mse=0.0039  precision_val=0.477 f1_macro_val=0.478 mse_val=0.0065
+  [squelette graine=0] etape  500/800  ce=0.170 mse=0.0035  precision_val=0.444 f1_macro_val=0.448 mse_val=0.0066
+  [squelette graine=0] etape  550/800  ce=0.202 mse=0.0028  precision_val=0.532 f1_macro_val=0.540 mse_val=0.0060
+  [squelette graine=0] etape  600/800  ce=0.282 mse=0.0032  precision_val=0.551 f1_macro_val=0.535 mse_val=0.0058
+  [squelette graine=0] etape  650/800  ce=0.260 mse=0.0030  precision_val=0.468 f1_macro_val=0.473 mse_val=0.0068
+  [squelette graine=0] etape  700/800  ce=0.143 mse=0.0030  precision_val=0.500 f1_macro_val=0.492 mse_val=0.0065
+  [squelette graine=0] etape  750/800  ce=0.302 mse=0.0030  precision_val=0.468 f1_macro_val=0.472 mse_val=0.0058
+RESULTAT_SWEEP lambda=10.0 precision=0.472 f1=0.453 mse=0.0062
+
+
+=== RESUME SWEEP ===
+lambda=  0.10  precision=0.421  f1=0.407  mse=0.0063
+lambda=  1.00  precision=0.523  f1=0.545  mse=0.0062
+lambda= 10.00  precision=0.472  f1=0.453  mse=0.0062
+SWEEP_LAMBDA_OK

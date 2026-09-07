@@ -1,0 +1,81 @@
+POINT-JEPA COMME FONDATION DU PROJET
+Mathieu Bonneau — 30 août 2026
+
+Référence : Saito, Kudeshia, Poovvancheri (Graphics and Spatial Computing Lab,
+Saint Mary's University), "Point-JEPA: A Joint Embedding Predictive Architecture
+for Self-Supervised Learning on Point Cloud", WACV.
+Code : https://github.com/Ayumu-J-S/Point-JEPA
+PDF local : revue-litterature/point-jepa.pdf
+
+
+CE QUE FAIT L'ARTICLE
+
+Point-JEPA applique le principe JEPA (I-JEPA) directement à des nuages de points
+d'objets (ShapeNet, ModelNet40, ScanObjectNN), sans reconstruction dans l'espace
+d'entrée. Trois éléments techniques réutilisables tels quels :
+
+1. Tokenisation en patches de points : FPS (farthest point sampling) sélectionne
+   des points centres, puis kNN regroupe les points voisins autour de chaque
+   centre. Chaque groupe est normalisé (coordonnées recentrées sur le centre) et
+   encodé par un mini-PointNet (MLP partagé + max-pooling) en un embedding de
+   patch. C'est une tokenisation adaptée à un nuage de points "objet" dense.
+
+2. Séquenceur glouton (greedy sequencer) : un nuage de points est invariant par
+   permutation, donc contrairement à une image (grille) ou une vidéo (grille
+   spatio-temporelle), l'indice d'un patch ne dit rien sur sa position spatiale.
+   Sans correction, le masquage par blocs contigus de JEPA n'a pas de sens.
+   Point-JEPA résout ça en réordonnant les patches par proximité spatiale
+   (départ au centre de coordonnées minimales, puis plus proche voisin non
+   visité, itérativement). Après ce réordonnancement, "contigu en indice" veut
+   à nouveau dire "contigu dans l'espace".
+
+3. Masquage multi-blocs : plusieurs blocs cibles contigus (ratio 0.15-0.2,
+   répétés 4 à 6 fois), contexte disjoint des cibles (ratio 0.4-0.75). Le
+   masquage des cibles est appliqué après l'encodeur cible (sur des embeddings
+   déjà sémantiques), pas sur les patches bruts. Validé par ablation : bat le
+   masquage simple-bloc et le masquage aléatoire.
+
+Anti-effondrement : uniquement la recette standard JEPA : encodeur cible EMA,
+prédicteur asymétrique, stop-gradient. Ça fonctionne ici car les patches d'objets
+sont denses (peu de régions vides), contrairement à une scène LiDAR extérieure.
+
+
+POURQUOI C'EST LA MEILLEURE BASE POUR CE PROJET (PLUTÔT QU'AD-L-JEPA)
+
+Les nuages de points capturés par le LiDAR du labo (une personne dans une pièce)
+ressemblent structurellement à un objet dense unique suivi dans le temps, pas à
+une scène de conduite éparse avec de nombreux objets et de grandes zones vides.
+La tokenisation par patches de points (FPS+kNN+mini-PointNet) est donc plus
+proche du signal réel que la grille BEV d'AD-L-JEPA, pensée pour des scènes
+extérieures parcimonieuses. AD-L-JEPA reste une référence utile pour le
+masquage guidé et la régularisation anti-effondrement si un effondrement est
+observé empiriquement, mais Point-JEPA est le point de départ architectural.
+
+
+CE QUI MANQUE ET RESTE À CONCEVOIR (PAS UNE SIMPLE ADAPTATION)
+
+Point-JEPA est purement statique — pré-entraîné sur des objets isolés, une seule
+capture à la fois. Aucune dimension temporelle. Les auteurs le disent
+explicitement en conclusion : la prédiction d'embeddings temporels pour capturer
+l'évolution d'un nuage de points (mouvement, dynamique de scène) est identifiée
+comme travail futur, non implémenté dans l'article.
+
+C'est exactement la pièce manquante pour la reconnaissance d'activités : notre
+protocole du labo produit des séquences de nuages de points dans le temps, pas
+des instantanés isolés. Extension à concevoir :
+  - Reprendre FPS+kNN+mini-PointNet par frame pour obtenir les patches spatiaux.
+  - Étendre le séquenceur glouton dans le temps : relier les patches d'une frame
+    à la frame suivante par proximité de centre (analogue temporel du greedy
+    sequencer), ou directement construire des voisinages spatio-temporels
+    (kNN sur une fenêtre glissante de quelques frames) pour obtenir des
+    "tubelets" de points, à la manière des tubelets vidéo de V-JEPA mais basés
+    sur la proximité plutôt que sur une grille fixe.
+  - Le masquage multi-blocs (ratios validés par Point-JEPA) devrait se
+    transposer directement à ces tubelets ; à vérifier empiriquement.
+
+
+PROCHAINE ÉTAPE CONCRÈTE
+
+Partir du code public de Point-JEPA comme base, y greffer la dimension
+temporelle ci-dessus, avant de comparer au pipeline BEV/AD-L-JEPA si les
+résultats sont décevants (cf. plan d'action, section représentation).

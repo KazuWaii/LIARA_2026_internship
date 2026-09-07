@@ -1,0 +1,27 @@
+sequences totales: 1080  nb_fenetres=8  nb_frames_echantillon=8  nettoyage=True
+extraction parallele sur 14 processus...
+  50/1080 sequences  [35.1s ecoulees, ~722s restantes]
+  100/1080 sequences  [64.1s ecoulees, ~629s restantes]
+  150/1080 sequences  [94.0s ecoulees, ~582s restantes]
+  200/1080 sequences  [122.1s ecoulees, ~537s restantes]
+  250/1080 sequences  [150.1s ecoulees, ~498s restantes]
+  300/1080 sequences  [178.4s ecoulees, ~464s restantes]
+  350/1080 sequences  [207.4s ecoulees, ~432s restantes]
+  400/1080 sequences  [234.9s ecoulees, ~399s restantes]
+  450/1080 sequences  [254.5s ecoulees, ~356s restantes]
+  500/1080 sequences  [271.4s ecoulees, ~315s restantes]
+  550/1080 sequences  [300.5s ecoulees, ~290s restantes]
+  600/1080 sequences  [325.6s ecoulees, ~260s restantes]
+  650/1080 sequences  [352.2s ecoulees, ~233s restantes]
+  700/1080 sequences  [380.6s ecoulees, ~207s restantes]
+  750/1080 sequences  [408.2s ecoulees, ~180s restantes]
+  800/1080 sequences  [432.5s ecoulees, ~151s restantes]
+  850/1080 sequences  [461.5s ecoulees, ~125s restantes]
+  900/1080 sequences  [493.0s ecoulees, ~99s restantes]
+  950/1080 sequences  [510.7s ecoulees, ~70s restantes]
+  1000/1080 sequences  [537.6s ecoulees, ~43s restantes]
+  1050/1080 sequences  [567.4s ecoulees, ~16s restantes]
+
+extraction terminee en 578.6s -- X: (8640, 600)  y: (8640,)
+features sauvegardees -> mmfi-src/features_laplacien_v5_all.npz
+EXTRACTION_LAPLACIEN_V5_OK

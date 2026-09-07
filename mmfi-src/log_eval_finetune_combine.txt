@@ -1,0 +1,47 @@
+  [grille, finetune, final.pt] etape   0/2000  perte=3.588  precision_val=0.042  f1_macro_val=0.013
+  [grille, finetune, final.pt] etape  50/2000  perte=3.068  precision_val=0.042  f1_macro_val=0.022
+  [grille, finetune, final.pt] etape 100/2000  perte=2.237  precision_val=0.130  f1_macro_val=0.092
+  [grille, finetune, final.pt] etape 150/2000  perte=1.528  precision_val=0.236  f1_macro_val=0.213
+  [grille, finetune, final.pt] etape 200/2000  perte=0.919  precision_val=0.361  f1_macro_val=0.357
+  [grille, finetune, final.pt] etape 250/2000  perte=0.717  precision_val=0.384  f1_macro_val=0.397
+  [grille, finetune, final.pt] etape 300/2000  perte=0.454  precision_val=0.444  f1_macro_val=0.462
+  [grille, finetune, final.pt] etape 350/2000  perte=0.320  precision_val=0.435  f1_macro_val=0.435
+  [grille, finetune, final.pt] etape 400/2000  perte=0.386  precision_val=0.463  f1_macro_val=0.473
+  [grille, finetune, final.pt] etape 450/2000  perte=0.290  precision_val=0.468  f1_macro_val=0.477
+  [grille, finetune, final.pt] etape 500/2000  perte=0.210  precision_val=0.444  f1_macro_val=0.456
+  [grille, finetune, final.pt] etape 550/2000  perte=0.254  precision_val=0.486  f1_macro_val=0.501
+  [grille, finetune, final.pt] etape 600/2000  perte=0.215  precision_val=0.491  f1_macro_val=0.509
+  [grille, finetune, final.pt] etape 650/2000  perte=0.281  precision_val=0.481  f1_macro_val=0.487
+  [grille, finetune, final.pt] etape 700/2000  perte=0.162  precision_val=0.505  f1_macro_val=0.521
+  [grille, finetune, final.pt] etape 750/2000  perte=0.140  precision_val=0.565  f1_macro_val=0.586
+  [grille, finetune, final.pt] etape 800/2000  perte=0.202  precision_val=0.491  f1_macro_val=0.512
+  [grille, finetune, final.pt] etape 850/2000  perte=0.130  precision_val=0.481  f1_macro_val=0.490
+  [grille, finetune, final.pt] etape 900/2000  perte=0.071  precision_val=0.491  f1_macro_val=0.515
+  [grille, finetune, final.pt] etape 950/2000  perte=0.096  precision_val=0.477  f1_macro_val=0.499
+  [grille, finetune, final.pt] etape 1000/2000  perte=0.091  precision_val=0.537  f1_macro_val=0.558
+  [grille, finetune, final.pt] etape 1050/2000  perte=0.052  precision_val=0.505  f1_macro_val=0.503
+  [grille, finetune, final.pt] etape 1100/2000  perte=0.214  precision_val=0.532  f1_macro_val=0.539
+  [grille, finetune, final.pt] etape 1150/2000  perte=0.096  precision_val=0.495  f1_macro_val=0.504
+  [grille, finetune, final.pt] etape 1200/2000  perte=0.067  precision_val=0.472  f1_macro_val=0.461
+  [grille, finetune, final.pt] etape 1250/2000  perte=0.050  precision_val=0.514  f1_macro_val=0.546
+  [grille, finetune, final.pt] etape 1300/2000  perte=0.126  precision_val=0.491  f1_macro_val=0.488
+  [grille, finetune, final.pt] etape 1350/2000  perte=0.051  precision_val=0.523  f1_macro_val=0.555
+  [grille, finetune, final.pt] etape 1400/2000  perte=0.044  precision_val=0.542  f1_macro_val=0.552
+  [grille, finetune, final.pt] etape 1450/2000  perte=0.084  precision_val=0.532  f1_macro_val=0.552
+  [grille, finetune, final.pt] etape 1500/2000  perte=0.126  precision_val=0.551  f1_macro_val=0.572
+  [grille, finetune, final.pt] etape 1550/2000  perte=0.029  precision_val=0.495  f1_macro_val=0.507
+  [grille, finetune, final.pt] etape 1600/2000  perte=0.040  precision_val=0.458  f1_macro_val=0.466
+  [grille, finetune, final.pt] etape 1650/2000  perte=0.126  precision_val=0.505  f1_macro_val=0.525
+  [grille, finetune, final.pt] etape 1700/2000  perte=0.110  precision_val=0.551  f1_macro_val=0.568
+  [grille, finetune, final.pt] etape 1750/2000  perte=0.012  precision_val=0.514  f1_macro_val=0.529
+  [grille, finetune, final.pt] etape 1800/2000  perte=0.051  precision_val=0.523  f1_macro_val=0.529
+  [grille, finetune, final.pt] etape 1850/2000  perte=0.032  precision_val=0.528  f1_macro_val=0.557
+  [grille, finetune, final.pt] etape 1900/2000  perte=0.083  precision_val=0.500  f1_macro_val=0.500
+  [grille, finetune, final.pt] etape 1950/2000  perte=0.072  precision_val=0.486  f1_macro_val=0.491
+
+
+=== RESUME ===
+condition                            precision   f1_macro
+grille_mmfi_jrdb_finetune_preentraine      0.514      0.523
+grille_vjepa_finetune_scratch (reference)      0.514      0.508
+EVAL_FINETUNE_COMBINE_OK

@@ -1,0 +1,32 @@
+nb sequences totales: 1080
+  200/1080 traitees...
+  400/1080 traitees...
+  600/1080 traitees...
+  800/1080 traitees...
+  1000/1080 traitees...
+
+Termine en 174.3s -- 1080 ok, 0 erreurs
+
+--- STATS GLOBALES (occupation moyenne par sequence) ---
+  moyenne: 12.49%  std: 1.07%
+  min: 10.13%  max: 16.25%
+  frames avec occupation nulle (occupation_min==0): 0 / 1080
+  points par frame - min observe: 1009  max observe: 1660
+
+--- STATS PAR ENVIRONNEMENT ---
+  E01: 270 sequences, occupation 11.07% (+/-0.26), points/frame min=1018 max=1254
+  E02: 270 sequences, occupation 12.12% (+/-0.54), points/frame min=1009 max=1405
+  E03: 270 sequences, occupation 13.69% (+/-0.38), points/frame min=1266 max=1660
+  E04: 270 sequences, occupation 13.08% (+/-0.30), points/frame min=1220 max=1514
+
+--- 10 SEQUENCES LES PLUS FAIBLES EN OCCUPATION ---
+  E02/S18/A19: occupation_moy=10.13%, points/frame min=1009
+  E01/S07/A19: occupation_moy=10.28%, points/frame min=1018
+  E01/S02/A19: occupation_moy=10.36%, points/frame min=1028
+  E01/S02/A27: occupation_moy=10.40%, points/frame min=1049
+  E01/S03/A19: occupation_moy=10.43%, points/frame min=1043
+  E02/S18/A20: occupation_moy=10.47%, points/frame min=1077
+  E01/S01/A19: occupation_moy=10.49%, points/frame min=1054
+  E01/S07/A27: occupation_moy=10.54%, points/frame min=1053
+  E01/S01/A05: occupation_moy=10.59%, points/frame min=1100
+  E01/S01/A06: occupation_moy=10.60%, points/frame min=1107

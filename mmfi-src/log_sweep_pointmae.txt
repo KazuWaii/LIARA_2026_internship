@@ -1,0 +1,4 @@
+
+=== sweep pointmae geler_encodeur=True ===
+  [pointmae graine=0 geler=True] etape    0/800  ce=3.223  precision_val=0.060 f1_macro_val=0.016
+  [pointmae graine=0 geler=True] etape   50/800  ce=1.949  precision_val=0.329 f1_macro_val=0.244

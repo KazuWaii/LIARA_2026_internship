@@ -1,0 +1,28 @@
+chargement features v2 (quadrants, 600 dims) et v3 (quadrants+vecteurs, 6200 dims)...
+
+=== reference (sans PCA, README) === v2 SVM_tune=0.638 HGB_tune=0.649 | v3 SVM_defaut=0.590 RF_defaut=0.611 (aucun gain net vs v2)
+
+--- PCA(v3) seul ---
+[v3_pca] n_comp=  10  SVM: cv=0.434 VAL_acc=0.372 VAL_f1=0.351  |  HGB: cv=0.401 VAL_acc=0.352 VAL_f1=0.344
+[v3_pca] n_comp=  20  SVM: cv=0.502 VAL_acc=0.462 VAL_f1=0.454  |  HGB: cv=0.475 VAL_acc=0.432 VAL_f1=0.428
+[v3_pca] n_comp=  50  SVM: cv=0.585 VAL_acc=0.549 VAL_f1=0.543  |  HGB: cv=0.551 VAL_acc=0.521 VAL_f1=0.517
+[v3_pca] n_comp= 100  SVM: cv=0.618 VAL_acc=0.601 VAL_f1=0.595  |  HGB: cv=0.578 VAL_acc=0.547 VAL_f1=0.544
+[v3_pca] n_comp= 200  SVM: cv=0.641 VAL_acc=0.609 VAL_f1=0.604  |  HGB: cv=0.578 VAL_acc=0.549 VAL_f1=0.545
+[v3_pca] n_comp= 400  SVM: cv=0.642 VAL_acc=0.626 VAL_f1=0.621  |  HGB: cv=0.562 VAL_acc=0.542 VAL_f1=0.538
+
+--- PCA(concat[v2,v3]) ---
+[concat_pca] n_comp=  10  SVM: cv=0.442 VAL_acc=0.387 VAL_f1=0.364  |  HGB: cv=0.412 VAL_acc=0.391 VAL_f1=0.383
+[concat_pca] n_comp=  20  SVM: cv=0.542 VAL_acc=0.524 VAL_f1=0.520  |  HGB: cv=0.518 VAL_acc=0.484 VAL_f1=0.477
+[concat_pca] n_comp=  50  SVM: cv=0.609 VAL_acc=0.586 VAL_f1=0.583  |  HGB: cv=0.579 VAL_acc=0.554 VAL_f1=0.549
+[concat_pca] n_comp= 100  SVM: cv=0.650 VAL_acc=0.641 VAL_f1=0.636  |  HGB: cv=0.596 VAL_acc=0.608 VAL_f1=0.606
+[concat_pca] n_comp= 200  SVM: cv=0.664 VAL_acc=0.632 VAL_f1=0.627  |  HGB: cv=0.600 VAL_acc=0.603 VAL_f1=0.598
+[concat_pca] n_comp= 400  SVM: cv=0.669 VAL_acc=0.635 VAL_f1=0.630  |  HGB: cv=0.592 VAL_acc=0.580 VAL_f1=0.573
+
+
+=== RESUME ===
+reference sans PCA : v2 SVM_tune=0.638 HGB_tune=0.649 (meilleur sur split sujet 4 fenetres) ; v2 8-fenetres SVM_tune=0.659 (meilleur absolu, features differentes, non comparable directement ici)
+v3_pca: meilleur SVM -> n_comp=400 VAL_acc=0.626 VAL_f1=0.621
+v3_pca: meilleur HGB -> n_comp=200 VAL_acc=0.549 VAL_f1=0.545
+concat_v2_v3_pca: meilleur SVM -> n_comp=100 VAL_acc=0.641 VAL_f1=0.636
+concat_v2_v3_pca: meilleur HGB -> n_comp=100 VAL_acc=0.608 VAL_f1=0.606
+TUNER_LAPLACIEN_V3_PCA_OK

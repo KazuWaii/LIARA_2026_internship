@@ -1,0 +1,155 @@
+Spectre du Laplacien : reglage d'hyperparametres + validation par split alternatif
+Mathieu Bonneau -- 4 septembre 2026 (apres-midi)
+
+
+CONTEXTE
+
+Suite a la piste B (note 3, "spectre du Laplacien... MEILLEUR RESULTAT
+ABSOLU", SVM par defaut C=1.0 -> 0.617 accuracy, split par sujet, 4
+fenetres/sequence) : demande explicite de l'utilisateur de continuer sur
+cette piste plutot que d'en ouvrir une nouvelle ("push Laplacian spectral
+further -- recommended"). Deux prochaines etapes deja identifiees dans la
+note 3 elle-meme :
+  - reglage d'hyperparametres (SVM/RF tournaient avec leurs valeurs par
+    defaut, "pas de recherche de grille" explicitement note comme limite)
+  - validation avec un split alternatif ("par environnement, comme le
+    papier") pour confirmer que 0.617 n'est pas une coincidence du split
+    sujet utilise
+
+
+ETAPE 1 -- RECHERCHE D'HYPERPARAMETRES (tuner_laplacien_v2.py)
+
+Sur les features DEJA extraites (features_laplacien_v2.npz, quadrants, 4
+fenetres/sequence, split sujet original) : GridSearchCV avec GroupKFold(5)
+GROUPE PAR SUJET (pas un K-Fold aveugle -- chaque sequence produit 4 lignes
+tres correlees entre elles, un K-Fold aveugle les repartirait entre folds
+et surestimerait le score de generalisation ; groupes reconstruits depuis
+l'ordre deterministe de decouper_train_val(), verifie 864 sequences x 4
+fenetres = 3456 lignes, aucune sequence ignoree).
+
+Grilles testees : SVM (C x gamma, kernel rbf, 36 candidats), RandomForest
+(n_estimators x max_depth x min_samples_leaf x max_features, 72 candidats),
+HistGradientBoosting (max_iter x learning_rate x max_depth x
+l2_regularization, 36 candidats) -- 3 grilles x 5 folds = 720 fits au total.
+
+NOTE DE PERFORMANCE : le SVM a 27 classes utilise one-vs-one par defaut
+(sklearn) = 351 classifieurs binaires par fit -- explique le cout beaucoup
+plus eleve que prevu (~35-40 min sur 16 coeurs pour les 3 grilles, alors que
+le volume de donnees, 3456 x 600, est modeste). A garder en tete pour tout
+futur grid search SVM sur ce projet (27 classes).
+
+RESULTATS (VAL = 8 sujets tenus a l'ecart, comme le reste du projet) :
+
+| modele | meilleurs hyperparametres | cv_accuracy (GroupKFold) | VAL accuracy | VAL f1_macro |
+|---|---|---|---|---|
+| SVM (reference, C=1.0 defaut) | -- | -- | 0.617 | -- |
+| RF (reference, defaut) | -- | -- | 0.601 | -- |
+| **SVM tune** | C=3.0, gamma=scale, rbf | 0.664 | **0.638** | 0.635 |
+| RF tune | max_depth=None, max_features=log2, min_samples_leaf=2, n_estimators=500 | 0.612 | 0.605 | 0.601 |
+| **HGB tune** | learning_rate=0.1, max_depth=6, max_iter=400, l2=0.0 | 0.651 | **0.649** | 0.644 |
+
+Reglage RF : AUCUN gain (0.605 vs 0.601 defaut, dans le bruit) -- les
+valeurs par defaut de RF etaient deja proches de l'optimum pour ce probleme.
+Reglage SVM : +0.021 (0.617->0.638). HistGradientBoosting (jamais essaye
+avant, ajoute a cette occasion) devient le MEILLEUR MODELE : 0.649, +0.032
+au-dessus du SVM par defaut, sans meme etre le mieux regle des trois --
+un simple changement d'algorithme a plus rapporte que le reglage fin du
+SVM/RF.
+
+
+ETAPE 2 -- VALIDATION PAR SPLIT ALTERNATIF + FENETRAGE PLUS DENSE
+
+Decouverte prealable utile : MM-Fi partitionne DEJA les 40 sujets par
+environnement, sans chevauchement (10 sujets/environnement, verifie
+programmatiquement) -- donc le split "30 sujets E1-E3 train / 10 sujets E4
+val" du papier EST un split par environnement ET par sujet simultanement.
+Nouvelle fonction `decouper_train_val_environnement()` dans dataset_jepa.py
+(train = tout sauf E04, val = E04) -- reproduit ce protocole exactement,
+contrairement a decouper_train_val() (8 DERNIERS sujets alphabetiquement,
+qui se trouvent etre S33-S40, un sous-ensemble de E04 seulement -- 2 sujets
+de E04 restent cote train dans l'ancien split).
+
+Re-extraction complete des 1080 sequences EN UNE SEULE PASSE
+(extraire_laplacien_v4.py, quadrants, 8 fenetres/sequence au lieu de 4 --
+fenetrage plus dense, deuxieme axe d'amelioration possible identifie dans
+la note 3), PARALLELISEE sur 14 processus (16 coeurs disponibles,
+multiprocessing.Pool par sequence) -- 1080 sequences en 324s (~5.5 min),
+contre ~25-30 min en sequentiel pour la moitie moins de fenetres (note 3) :
+gain de temps direct de la parallelisation, pas juste du volume. Features
+sauvegardees avec metadonnees (environnement, sujet) par ligne dans
+features_laplacien_v4_all.npz (8640 lignes = 1080 sequences x 8 fenetres),
+ce qui permet de reconstruire N'IMPORTE QUEL split par la suite SANS
+re-extraire.
+
+entrainer_laplacien_v4.py : reutilise DIRECTEMENT les hyperparametres deja
+trouves a l'etape 1 (SVM C=3/gamma=scale, HGB tune) -- PAS de nouveau grid
+search (le cout x2 du one-vs-one 27-classes rendait un grid search sur
+chaque split trop couteux pour le gain attendu, cf. note de performance
+ci-dessus) -- objectif : isoler l'effet du split/fenetrage a
+hyperparametres fixes.
+
+RESULTATS :
+
+| split | fenetres | SVM defaut | RF defaut | SVM tune (C=3) | HGB tune |
+|---|---|---|---|---|---|
+| sujet (comme avant) | 4 (ancien) | 0.617 | 0.601 | -- | -- |
+| sujet (comme avant) | 8 | 0.631 | 0.609 | **0.659** (f1=0.655) | 0.649 (f1=0.644) |
+| environnement (papier) | 8 | 0.625 | 0.610 | 0.643 (f1=0.641) | **0.653** (f1=0.650) |
+
+LECTURE :
+
+1. **Le fenetrage plus dense aide un peu, seul** : SVM defaut 0.617->0.631
+   (+0.014) sur le meme split, juste en doublant le nombre de fenetres
+   temporelles par sequence (4->8). Coherent avec l'hypothese de la note 3
+   (le fenetrage etait "simplifie... plutot que le stride dense du
+   papier").
+
+2. **Le split par environnement (protocole exact du papier) donne des
+   resultats TRES PROCHES du split par sujet** (0.643-0.653 contre
+   0.649-0.659) -- l'ecart entre les deux (<0.02) est bien plus petit que
+   les gains obtenus par ailleurs (tuning, fenetrage). CONCLUSION
+   IMPORTANTE : le resultat ~0.65 n'est PAS une coincidence du split sujet
+   original -- il est robuste au choix du protocole d'evaluation (sujet vs
+   environnement), la mise en garde methodologique de la note 3 est levee.
+
+3. **Nouveau meilleur resultat du projet, toutes methodes confondues :
+   0.659 accuracy / 0.655 f1_macro** (SVM C=3/gamma=scale, split sujet, 8
+   fenetres) -- +0.042 au-dessus de la reference d'origine (0.617) et +0.11
+   au-dessus du meilleur resultat deep learning (0.549, squelette
+   auxiliaire). Sur le split environnement (protocole papier), le meilleur
+   est HGB a 0.653 -- les deux modeles (SVM tune, HGB tune) sont
+   desormais dans un mouchoir de poche (0.64-0.66) quel que soit le split,
+   ce qui est un bon signe de stabilite plutot qu'un pic isole.
+
+4. Le RF reste systematiquement le plus faible des trois modeles sur les
+   deux splits (0.601-0.610) -- pas d'interet a continuer a le regler.
+
+
+PRUDENCE METHODOLOGIQUE
+
+- Les hyperparametres SVM/HGB "tune" viennent d'un grid search fait sur LE
+  SPLIT SUJET A 4 FENETRES SEULEMENT -- ils n'ont pas ete re-optimises pour
+  le split environnement ni pour le fenetrage a 8. Le fait qu'ils
+  transferent bien (gains coherents sur les deux nouveaux réglages) est
+  un signe encourageant de robustesse, mais un grid search DEDIE au split
+  environnement pourrait encore gagner quelques points -- pas fait ici par
+  souci de temps (cf. note de performance sur le cout du SVM 27-classes).
+- Toujours en dessous du 81-90% publie (arXiv:2509.23255) -- l'ecart
+  restant (~0.65 contre 0.81-0.90) est plus large que ce qu'un reglage
+  supplementaire est susceptible de combler seul ; des differences
+  d'implementation plus profondes restent probables (isolation de la
+  personne moins fidele que le papier -- DBSCAN auto-contenu contre une
+  methode de detection non documentee dans le papier ; absence des
+  statistiques de vecteurs propres qui n'avaient PAS aide en v3 mais
+  n'ont pas ete retestees avec regularisation/PCA depuis).
+- Toujours une seule extraction de features par configuration
+  (deterministe a donnees fixees) -- pas de repetition avec plusieurs
+  seeds DBSCAN ou plusieurs decoupages aleatoires de fenetres.
+
+
+PROCHAINE ETAPE NATURELLE SI REPRIS : grid search DEDIE au split
+environnement (au lieu de reutiliser les hyperparametres du split sujet) ;
+reprendre v3 (statistiques de vecteurs propres, 6200 dims, avait
+sur-appris avec les hyperparametres par defaut) avec une reduction de
+dimension (PCA) et les classifieurs maintenant regles ; combiner avec la
+piste A (squelette auxiliaire) en fusion de features/ensemble.

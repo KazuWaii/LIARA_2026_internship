@@ -1,4 +1,15 @@
 MMFi_Dataset/
+# Archive brute du dataset (83 Go) -- le pattern ci-dessus ne couvre que le
+# dossier extrait, pas ce zip
+data/MMFi_Dataset.zip
+
+# Artefacts d'entrainement volumineux et regenerables (checkpoints, caches
+# de features/groupes) -- reproductibles via les scripts documentes dans
+# mmfi-src/README.md, pas versionnes (des dizaines a centaines de Mo
+# chacun, changent a chaque experience)
+mmfi-src/checkpoints_*/
+mmfi-src/*.pt
+mmfi-src/*.npz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

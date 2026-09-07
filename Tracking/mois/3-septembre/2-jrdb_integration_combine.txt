@@ -1,0 +1,150 @@
+JRDB : acquisition, integration, pre-entrainement combine MM-Fi+JRDB
+Mathieu Bonneau — 3-4 septembre 2026 (nuit)
+
+
+CONTEXTE
+
+Suite au fine-tuning qui a montre que le pre-entrainement MM-Fi seul ne bat
+pas from-scratch (cf. mmfi-src/README.md, section "Fine-tuning en aval") --
+0,486 pre-entraine vs 0,514 from-scratch, ecart nul voire inverse -- JRDB
+(Tier 1, deja identifie le 28 aout comme corpus domaine-proche indoor/
+outdoor humain) devient la piste prioritaire pour apporter un volume de
+donnees que MM-Fi seul (864 sequences) ne peut pas fournir.
+
+
+ACQUISITION
+
+Mathieu a telecharge "Train Data, Subsets" (nuages de points uniquement,
+via jrdb.erc.monash.edu, compte deja cree) : train_pointclouds.zip (11,06
+Go) + test_pointclouds.zip (10,88 Go), ~20 min de telechargement. Extrait
+sur D: (908 Go libres suite au nettoyage ONCE/L-CAS par Mathieu -- "cuz it
+is useless").
+
+
+FORMAT VERIFIE SUR DONNEES REELLES
+
+train/pointclouds/{lower,upper}_velodyne/{sequence}/{frame:06d}.pcd -- PCD
+binaire compresse (LZF), champs x,y,z,intensite,ring. Lecture via `pypcd4`
+(open3d indisponible pour Python 3.13 sur cette plateforme -- aucune roue
+publiee). 27 sequences train, 27 893 frames (lower_velodyne seul,
+upper_velodyne ignore pour eviter une fusion 2-capteurs non calibree).
+
+Calibration empirique (30 frames echantillonnees, ~475k points) : 16
+canaux verticaux distincts a exactement -15/+15 degres (pas 2 degres,
+VLP-16 standard confirme), azimut 360 degres complets, portee p1=0,9m /
+p50=3,7m / p99=34,8m. -> `PROFIL_JRDB` (grille 16x180, noyau_spatial=4)
+dans tokenisation.py, `jrdb_dataset.py` (nouveau fichier, meme pattern que
+once_dataset.py).
+
+LIMITE NON RESOLUE : robot JackRabbot mobile pendant la capture (comme
+ONCE), mais aucune donnee de pose/odometrie telechargee (seulement les
+nuages de points) -- pas de compensation d'ego-mouvement. A corriger si
+necessaire (telechargement supplementaire, meme compte JRDB).
+
+
+VALIDATION MECANIQUE (JRDB standalone)
+
+Diagnostic 500 pas (mirroir V-JEPA + regularisation, source="jrdb",
+PROFIL_JRDB natif) : sain du debut a la fin, `sim_effondrement`
+0,32-0,36, `sim_poolee` 0,06-0,24 tout le run (contre ~0,999 sans aucun
+correctif) -- meme comportement sain que MM-Fi/mirroir. Confirme que
+l'architecture (masquage 2 groupes, perte L1, regularisation d'uniformite)
+generalise a un capteur/echelle tres different (16 canaux vs 64, 360°
+complets vs FOV etroit MM-Fi, 17k points/frame vs MM-Fi bien plus
+parcimonieux).
+
+
+PRE-ENTRAINEMENT COMBINE MM-Fi+JRDB
+
+Probleme : MM-Fi (PROFIL_MMFI, grille 64x96) et JRDB (PROFIL_JRDB, grille
+16x180) produisent des formes de tenseur DIFFERENTES -- un meme modele
+(tokenizer a forme fixe) ne peut pas traiter les deux dans un seul lot.
+Solution retenue : projeter JRDB via PROFIL_MMFI (FOV etroit, courte
+portee) au lieu de son profil natif -- verifie mecaniquement : 20,95%
+d'occupation sur JRDB avec ce profil (contre 95,55% avec PROFIL_JRDB natif),
+plausible, pas degenere. Recadre JRDB sur le contenu a echelle humaine
+(le premier plan proche du "capteur" virtuel), coherent avec l'objectif
+(apprendre des priors humains, pas la scene de campus entiere).
+
+`entrainement.py` : nouvelle source `source="mmfi_jrdb"` --
+`torch.utils.data.ConcatDataset([MMFiDatasetJEPA(...), JrdbDatasetJEPA(...,
+profil=PROFIL_MMFI)])`, melange aleatoire des deux sources par le
+DataLoader (shuffle=True). Dataset combine : 889 train (864 MM-Fi + 25
+JRDB) / 218 val.
+
+Diagnostic 500 pas : sain (`sim_effondrement` 0,17-0,39, `sim_poolee`
+0,06-0,17). Entrainement complet (3000 pas, `entrainer_combine.py`) termine
+sans incident -- sain de bout en bout (`sim_effondrement` 0,17-0,72,
+`sim_poolee` 0,02-0,18 tout le run), `checkpoints_mmfi_jrdb/final.pt`.
+
+
+RESULTAT FINE-TUNING (4 septembre matin)
+
+Comparaison fine-tuning (meme protocole exact que `eval_finetune_vjepa.py` --
+2000 pas, lot=64, `geler_encodeur=False`, graine=0) sur
+`checkpoints_mmfi_jrdb/final.pt` via `eval_finetune_combine.py` :
+
+| condition | precision | f1 macro |
+|---|---|---|
+| pre-entraine MM-Fi+JRDB + fine-tune | 0,514 | 0,523 |
+| pre-entraine MM-Fi seul + fine-tune  | 0,486 | 0,505 |
+| from-scratch + fine-tune             | 0,514 | 0,508 |
+
+A graine=0 : egalite stricte en precision, leger mieux en f1 -- mais la
+validation sur les 500 derniers pas oscillait deja entre 0,458 et 0,565,
+signe de bruit potentiel. Verifie par repetition (`eval_finetune_seeds.py`,
+graines 1 et 2, memes deux conditions, meme protocole exact) :
+
+| graine | combine precision | scratch precision |
+|---|---|---|
+| 0 | 0,514 | 0,514 |
+| 1 | 0,449 | 0,551 |
+| 2 | 0,532 | 0,463 |
+| moyenne +/- ecart-type (n=3) | 0,498 +/- 0,044 | 0,509 +/- 0,044 |
+
+CONCLUSION CORRIGEE (la lecture a graine=0 seule ne tient pas) :
+l'ecart-type inter-graines (+/-0,044) depasse l'ecart entre les moyennes
+(0,011) -- combine et from-scratch sont INDISCERNABLES statistiquement.
+La "fermeture de l'ecart" a graine=0 etait du bruit d'echantillonnage.
+25 sequences JRDB ajoutees a 864 sequences MM-Fi (moins de 3% de volume
+supplementaire) est probablement trop marginal pour produire un effet
+mesurable -- le volume ajoute est le facteur limitant le plus probable,
+pas necessairement l'idee elle-meme. A noter aussi : le resultat du 3
+septembre (MM-Fi seul legerement derriere from-scratch, 0,486 vs 0,514)
+n'a JAMAIS ete repete sur plusieurs graines non plus -- meme prudence a
+lui appliquer retroactivement.
+
+
+SUITE : VOLUME JRDB DOUBLE (4 septembre matin)
+
+Teste directement l'hypothese "volume ajoute = facteur limitant" en
+reutilisant le split "test" de JRDB (D:/jrdb/test/, deja extrait le 3
+septembre, jamais utilise) -- 27 sequences supplementaires, legitime car
+JEPA est auto-supervise (aucune etiquette JRDB nulle part dans ce
+pipeline, seul MM-Fi fournit les etiquettes HAR du fine-tuning aval).
+`entrainement.py` : nouvelle source `source="mmfi_jrdb2x"` (~50 sequences
+JRDB train au lieu de 25, ~5-6% du corpus combine). Entrainement 3000 pas
+sain (`checkpoints_mmfi_jrdb2x/`). Fine-tuning 3 graines
+(`eval_finetune_jrdb2x_seeds.py` + retry graine2 isole apres un
+MemoryError transitoire de DataLoader, cf. logs -- pas reproduit au retry,
+5,5 Go de RAM libre au moment du crash, cause probable : pic transitoire
+pendant le teardown/spinup des workers entre deux runs consecutifs) :
+
+| graine | JRDB x2 precision | JRDB x1 precision | scratch precision |
+|---|---|---|---|
+| 0 | 0,500 | 0,514 | 0,514 |
+| 1 | 0,523 | 0,449 | 0,551 |
+| 2 | 0,528 | 0,532 | 0,463 |
+| moyenne +/- ecart-type | 0,517 +/- 0,015 | 0,498 +/- 0,044 | 0,509 +/- 0,044 |
+
+CONCLUSION : la moyenne (0,517) depasse legerement from-scratch (0,509)
+mais l'ecart (0,008) reste bien plus petit que l'ecart-type de
+from-scratch (0,044) -- PAS une amelioration demontree sur n=3. Plus
+notable (a prendre avec prudence, n=3 est trop petit pour une estimation
+fiable de variance) : l'ecart-type inter-graines du JRDB x2 (+/-0,015) est
+nettement plus resserre que JRDB x1 et scratch (+/-0,044 tous les deux) --
+piste a explorer : le pre-entrainement pourrait stabiliser le fine-tuning
+(moins sensible a l'initialisation aleatoire) avant meme d'ameliorer sa
+moyenne. Non etabli, a confirmer avec plus de graines si repris.
+PROCHAINE ETAPE naturelle : plus de graines pour trancher sur la variance,
+et/ou grossir encore (autres sources Tier 1/2 du 28 aout).

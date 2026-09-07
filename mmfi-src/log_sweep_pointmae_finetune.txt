@@ -1,0 +1,21 @@
+train: (3456, 8, 64, 32, 3)  val: (864, 8, 64, 32, 3)
+  [pointmae_finetune graine=0] etape    0/800  ce=3.564 precision_val=0.053 f1_macro_val=0.013
+  [pointmae_finetune graine=0] etape   50/800  ce=2.771 precision_val=0.266 f1_macro_val=0.178
+  [pointmae_finetune graine=0] etape  100/800  ce=1.791 precision_val=0.472 f1_macro_val=0.403
+  [pointmae_finetune graine=0] etape  150/800  ce=1.166 precision_val=0.603 f1_macro_val=0.556
+  [pointmae_finetune graine=0] etape  200/800  ce=0.941 precision_val=0.784 f1_macro_val=0.762
+  [pointmae_finetune graine=0] etape  250/800  ce=0.618 precision_val=0.766 f1_macro_val=0.746
+  [pointmae_finetune graine=0] etape  300/800  ce=0.512 precision_val=0.787 f1_macro_val=0.768
+  [pointmae_finetune graine=0] etape  350/800  ce=0.171 precision_val=0.850 f1_macro_val=0.839
+  [pointmae_finetune graine=0] etape  400/800  ce=0.137 precision_val=0.872 f1_macro_val=0.870
+  [pointmae_finetune graine=0] etape  450/800  ce=0.370 precision_val=0.900 f1_macro_val=0.901
+  [pointmae_finetune graine=0] etape  500/800  ce=0.078 precision_val=0.906 f1_macro_val=0.902
+  [pointmae_finetune graine=0] etape  550/800  ce=0.207 precision_val=0.934 f1_macro_val=0.934
+  [pointmae_finetune graine=0] etape  600/800  ce=0.240 precision_val=0.891 f1_macro_val=0.889
+  [pointmae_finetune graine=0] etape  650/800  ce=0.324 precision_val=0.903 f1_macro_val=0.904
+  [pointmae_finetune graine=0] etape  700/800  ce=0.047 precision_val=0.912 f1_macro_val=0.912
+  [pointmae_finetune graine=0] etape  750/800  ce=0.323 precision_val=0.900 f1_macro_val=0.898
+
+RESULTAT_SWEEP_FINETUNE precision=0.894 f1=0.894
+reference (linear probing, encodeur fige) : 0.934+-0.006
+SWEEP_POINTMAE_FINETUNE_OK

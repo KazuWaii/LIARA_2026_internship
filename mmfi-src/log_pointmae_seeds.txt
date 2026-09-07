@@ -1,0 +1,50 @@
+features totales: X=(4320, 8, 768)
+train: torch.Size([3456, 8, 768])  val: torch.Size([864, 8, 768])
+
+=== pointmae_probe graine=0 ===
+  [pointmae_probe graine=0] etape    0/2000  ce=3.474 precision_val=0.042 f1_macro_val=0.009
+  [pointmae_probe graine=0] etape  200/2000  ce=0.785 precision_val=0.728 f1_macro_val=0.703
+  [pointmae_probe graine=0] etape  400/2000  ce=0.544 precision_val=0.838 f1_macro_val=0.838
+  [pointmae_probe graine=0] etape  600/2000  ce=0.475 precision_val=0.870 f1_macro_val=0.871
+  [pointmae_probe graine=0] etape  800/2000  ce=0.316 precision_val=0.920 f1_macro_val=0.920
+  [pointmae_probe graine=0] etape 1000/2000  ce=0.348 precision_val=0.927 f1_macro_val=0.927
+  [pointmae_probe graine=0] etape 1200/2000  ce=0.359 precision_val=0.898 f1_macro_val=0.899
+  [pointmae_probe graine=0] etape 1400/2000  ce=0.199 precision_val=0.931 f1_macro_val=0.930
+  [pointmae_probe graine=0] etape 1600/2000  ce=0.134 precision_val=0.948 f1_macro_val=0.948
+  [pointmae_probe graine=0] etape 1800/2000  ce=0.131 precision_val=0.925 f1_macro_val=0.925
+RESULTAT_PARTIEL pointmae_probe_graine0 precision=0.941 f1=0.940
+
+=== pointmae_probe graine=1 ===
+  [pointmae_probe graine=1] etape    0/2000  ce=3.550 precision_val=0.035 f1_macro_val=0.004
+  [pointmae_probe graine=1] etape  200/2000  ce=0.905 precision_val=0.727 f1_macro_val=0.715
+  [pointmae_probe graine=1] etape  400/2000  ce=0.452 precision_val=0.823 f1_macro_val=0.815
+  [pointmae_probe graine=1] etape  600/2000  ce=0.511 precision_val=0.840 f1_macro_val=0.836
+  [pointmae_probe graine=1] etape  800/2000  ce=0.304 precision_val=0.882 f1_macro_val=0.883
+  [pointmae_probe graine=1] etape 1000/2000  ce=0.228 precision_val=0.899 f1_macro_val=0.901
+  [pointmae_probe graine=1] etape 1200/2000  ce=0.213 precision_val=0.914 f1_macro_val=0.915
+  [pointmae_probe graine=1] etape 1400/2000  ce=0.106 precision_val=0.926 f1_macro_val=0.925
+  [pointmae_probe graine=1] etape 1600/2000  ce=0.117 precision_val=0.938 f1_macro_val=0.937
+  [pointmae_probe graine=1] etape 1800/2000  ce=0.162 precision_val=0.944 f1_macro_val=0.944
+RESULTAT_PARTIEL pointmae_probe_graine1 precision=0.929 f1=0.930
+
+=== pointmae_probe graine=2 ===
+  [pointmae_probe graine=2] etape    0/2000  ce=3.398 precision_val=0.059 f1_macro_val=0.013
+  [pointmae_probe graine=2] etape  200/2000  ce=0.828 precision_val=0.786 f1_macro_val=0.775
+  [pointmae_probe graine=2] etape  400/2000  ce=0.691 precision_val=0.818 f1_macro_val=0.816
+  [pointmae_probe graine=2] etape  600/2000  ce=0.408 precision_val=0.888 f1_macro_val=0.886
+  [pointmae_probe graine=2] etape  800/2000  ce=0.254 precision_val=0.911 f1_macro_val=0.911
+  [pointmae_probe graine=2] etape 1000/2000  ce=0.229 precision_val=0.919 f1_macro_val=0.919
+  [pointmae_probe graine=2] etape 1200/2000  ce=0.193 precision_val=0.913 f1_macro_val=0.912
+  [pointmae_probe graine=2] etape 1400/2000  ce=0.177 precision_val=0.924 f1_macro_val=0.924
+  [pointmae_probe graine=2] etape 1600/2000  ce=0.223 precision_val=0.924 f1_macro_val=0.923
+  [pointmae_probe graine=2] etape 1800/2000  ce=0.164 precision_val=0.940 f1_macro_val=0.940
+RESULTAT_PARTIEL pointmae_probe_graine2 precision=0.931 f1=0.931
+
+
+=== RESUME MULTI-GRAINES (Point-MAE linear probe, encodeur ShapeNet fige) ===
+graine=0  precision=0.941  f1=0.940
+graine=1  precision=0.929  f1=0.930
+graine=2  precision=0.931  f1=0.931
+pointmae_probe: precision mean=0.934 stdev=0.006  f1 mean=0.934 stdev=0.006
+references (meme protocole exact) : from-scratch LiDAR=0.509+-0.044 | squelette-auxiliaire=0.549+-0.009 | distillation squelette->LiDAR=0.523+-0.037 | laplacien+SVM regle (meilleur LiDAR-only)=0.659
+ENTRAINEMENT_POINTMAE_SEEDS_OK

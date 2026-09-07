@@ -1,0 +1,287 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    urlcolor=blue,
+    linkcolor=black
+}
+
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\title{Datasets LiDAR publics pour le pré-entraînement général \\
+\large Stage LIARA -- Reconnaissance d'activités par LiDAR}
+\author{Mathieu Bonneau}
+\date{28 août 2026}
+
+\begin{document}
+
+\maketitle
+
+\section*{Contexte}
+
+Ce document liste les datasets LiDAR publics identifiés pour constituer le corpus de
+pré-entraînement auto-supervisé (approche V-JEPA) du modèle général sur nuages de points,
+avant fine-tuning sur le dataset collecté au laboratoire selon le protocole
+\texttt{SG\_protocol\_multi\_v1}. Les datasets sont classés par tier de pertinence.
+
+\footnotesize
+
+\section{Tier 1 --- Indoor / humain-centré avec actions ou pose}
+\label{sec:tier1}
+
+Datasets prioritaires : environnement intérieur ou proche, sujets humains, actions ou poses
+annotées. Le plus proche du protocole du labo.
+
+\begin{longtable}{P{2.6cm} P{3.0cm} P{4.2cm} P{2.4cm} P{3.0cm}}
+\toprule
+\textbf{Dataset (année)} & \textbf{Capteur / Environnement} & \textbf{Taille \& labels} & \textbf{Licence / accès} & \textbf{Lien} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Dataset (année)} & \textbf{Capteur / Environnement} & \textbf{Taille \& labels} & \textbf{Licence / accès} & \textbf{Lien} \\
+\midrule
+\endhead
+
+MM-Fi (2023) &
+Ouster OS1 32ch @10Hz -- Indoor &
+320,76k frames, 1080 séquences, 40 sujets, 27 classes (14 AVQ + 13 réhabilitation). Pose 2D/3D + action &
+Gratuit académique (formulaire) &
+\url{https://arxiv.org/abs/2305.10345} \\
+\addlinespace
+
+HuCenLife (2023) &
+Ouster OS1 128ch -- Indoor + outdoor &
+212 séquences, 3931+2254 frames. Actions riches + interactions humain-humain/objet &
+Gratuit (GitHub) &
+\url{https://github.com/4DVLab/HuCenLife} \\
+\addlinespace
+
+L-CAS 3D Point Cloud People (2017) &
+Velodyne VLP-16 -- Indoor (Univ. Lincoln) &
+28\,002 frames (\textasciitilde{}49 min). Bbox pedestrian/group, pas d'action &
+CC BY-NC-SA 4.0 &
+\url{https://lcas.lincoln.ac.uk/wp/research/data-sets-software/l-cas-3d-point-cloud-people-dataset/} \\
+\addlinespace
+
+SZTAKI-LGA (2016) &
+Velodyne HDL-64E -- Outdoor (activités fines) &
+28 sujets. Gait + bend/wave/phone call/check watch. Action + ré-identification &
+Gratuit (téléchargement direct) &
+\url{http://web.eee.sztaki.hu/i4d/SZTAKI-LGA-DB.html} \\
+\addlinespace
+
+JRDB (2019--2021) &
+2$\times$Velodyne 16ch + 2$\times$Sick -- Indoor + outdoor (campus) &
+64 min annotées, 1,8M cuboïdes 3D, 3500 trajectoires. Bbox 3D + pose/action + groupes sociaux &
+Gratuit académique &
+\url{https://jrdb.stanford.edu/} \\
+\addlinespace
+
+HmPEAR (2024) &
+LiDAR 128ch -- Outdoor &
+300k+ frames, 10 scènes, 25 sujets, 40 actions quotidiennes. Pose SMPL + action &
+Académique (demande via OpenReview) &
+\url{https://openreview.net/forum?id=hgRElsBV6v} \\
+\addlinespace
+
+STCrowd (2022) &
+LiDAR 128ch + caméra -- Outdoor (foule dense) &
+219k instances piéton, 10\,891 frames, 84 séquences. Bbox + pose. Fort accent occlusion/densité &
+Gratuit académique &
+\url{https://arxiv.org/abs/2204.01026} \\
+
+\bottomrule
+\end{longtable}
+
+\section{Tier 2 --- Humain/piéton pertinent, outdoor ou actions non domestiques}
+\label{sec:tier2}
+
+\begin{longtable}{P{2.6cm} P{3.0cm} P{4.2cm} P{2.4cm} P{3.0cm}}
+\toprule
+\textbf{Dataset (année)} & \textbf{Capteur / Environnement} & \textbf{Taille \& labels} & \textbf{Licence / accès} & \textbf{Lien} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Dataset (année)} & \textbf{Capteur / Environnement} & \textbf{Taille \& labels} & \textbf{Licence / accès} & \textbf{Lien} \\
+\midrule
+\endhead
+
+SLOPER4D (2023) &
+Ouster OS1 128ch (casque) -- Outdoor urbain &
+100k+ frames LiDAR, 12 sujets, 15 séquences. SMPL + trajectoire globale &
+Gratuit (GitHub) &
+\url{https://github.com/climbingdaily/SLOPER4D} \\
+\addlinespace
+
+LiDARHuman26M / LiDARCap (2022) &
+LiDAR longue portée (12--28m) -- Outdoor &
+184\,048 frames, 13 sujets, 20 mouvements quotidiens. SMPL complet &
+Sur demande (papier) &
+\url{https://arxiv.org/abs/2203.14698} \\
+\addlinespace
+
+Human-M3 (2023) &
+4$\times$Livox MID-100 -- Outdoor multi-personnes &
+\textasciitilde{}90k enregistrements, 2--10 personnes simultanées. Pseudo-SMPL &
+CC (GitHub) &
+\url{https://github.com/soullessrobot/Human-M3-Dataset} \\
+\addlinespace
+
+CIMI4D (2023) &
+LiDAR scan -- Outdoor (murs d'escalade) &
+179\,838 frames, 12 grimpeurs, 13 murs. SMPL + interactions homme-scène &
+Gratuit académique &
+\url{https://arxiv.org/abs/2303.17948} \\
+\addlinespace
+
+HSC4D (2022) &
+LiDAR porté sur le corps + IMU -- Indoor + outdoor large échelle &
+50k frames LiDAR (20Hz). Pose/trajectoire, pas d'action fine &
+Gratuit (GitHub) &
+\url{https://github.com/climbingdaily/HSC4D} \\
+\addlinespace
+
+FreeMotion (2024) &
+Multi-LiDAR (studio panoptique) -- Indoor studio &
+40 types de mouvement. SMPL multi-vues &
+Via papier LiveHPS &
+\url{https://arxiv.org/abs/2402.17171} \\
+\addlinespace
+
+Waymo Open Dataset -- Perception v2 (pose) (2023+) &
+5 LiDAR (1 moyenne + 4 courte portée) -- Outdoor conduite &
+Grande échelle, 14 keypoints/piéton. Pose piéton/cycliste, pas d'action domestique &
+Gratuit, licence recherche non commerciale &
+\url{https://waymo.com/open/data/perception/} \\
+
+\bottomrule
+\end{longtable}
+
+\section{Tier 3 --- Corpus génériques volumineux (pré-entraînement bas-niveau, sans humains étiquetés)}
+\label{sec:tier3}
+
+\begin{longtable}{P{2.6cm} P{3.0cm} P{4.2cm} P{2.4cm} P{3.0cm}}
+\toprule
+\textbf{Dataset (année)} & \textbf{Capteur / Environnement} & \textbf{Taille \& labels} & \textbf{Licence / accès} & \textbf{Lien} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Dataset (année)} & \textbf{Capteur / Environnement} & \textbf{Taille \& labels} & \textbf{Licence / accès} & \textbf{Lien} \\
+\midrule
+\endhead
+
+ONCE (2021) &
+Non précisé (Huawei) -- Outdoor &
+1M scènes LiDAR, 144h de conduite, seulement 15k annotées. Pas de labels humains -- \textbf{corpus conçu pour le SSL} &
+Gratuit académique, non commercial &
+\url{https://arxiv.org/abs/2106.11037} \\
+\addlinespace
+
+SemanticKITTI / KITTI-360 (2019/2021) &
+Velodyne HDL-64E -- Outdoor &
+43\,552 frames / 320k images + 100k scans. Pas de labels humains fins &
+CC BY-NC-SA &
+\url{https://arxiv.org/abs/1904.01416} \\
+\addlinespace
+
+nuScenes (2019) &
+Velodyne HDL-32E -- Outdoor &
+34\,149 scans, 1000 scènes. Bbox piéton, pas d'action &
+Gratuit, non commercial &
+\url{https://www.nuscenes.org/} \\
+\addlinespace
+
+Argoverse 2 -- Lidar Dataset (2023) &
+2$\times$32ch ($\Rightarrow$64ch@10Hz) -- Outdoor &
+20\,000 séquences non labellisées, 6M frames &
+CC BY-NC-SA &
+\url{https://www.argoverse.org/av2.html} \\
+\addlinespace
+
+PandaSet (2020) &
+Hesai Pandar64 + PandarGT -- Outdoor &
+16\,000 sweeps, 103 scènes. Bbox piéton &
+CC BY 4.0 (usage commercial autorisé) &
+\url{https://pandaset.org/} \\
+\addlinespace
+
+Zenseact Open Dataset -- ZOD (2023) &
+VLS128 + 2$\times$VLP16 -- Outdoor &
+Multi-année, 14 pays européens. Bbox piéton &
+CC BY-SA 4.0 &
+\url{https://zod.zenseact.com/} \\
+\addlinespace
+
+DAIR-V2X (2022) &
+40ch (véhicule) + 300ch (infrastructure) -- Outdoor intersections &
+71\,254 frames LiDAR. Bbox, pas de pose &
+Gratuit académique &
+\url{https://arxiv.org/abs/2204.05575} \\
+\addlinespace
+
+ApolloScape (2018) &
+Non précisé -- Outdoor &
+80k scans LiDAR, 1000km de trajectoires. Pas de labels humains &
+Gratuit académique &
+\url{https://github.com/ApolloScapeAuto/dataset-api} \\
+\addlinespace
+
+Lyft Level 5 (2019) $^{\text{\Large\textcolor{orange}{!}}}$ &
+Non précisé -- Outdoor &
+29k frames, 97 séquences. Bbox piéton &
+Statut de maintenance incertain en 2026 &
+via Kaggle / archives \\
+
+\bottomrule
+\end{longtable}
+
+\normalsize
+
+\section{Référence méthodologique directement pertinente}
+
+\textbf{AD-L-JEPA} (2025, AAAI 2026) est la première adaptation de l'architecture JEPA à des
+données LiDAR automobiles : pré-entraînement auto-supervisé par prédiction d'embeddings BEV
+(pas de reconstruction pixel/point), testé sur ONCE et Waymo, code public. C'est la preuve de
+concept la plus proche du plan V-JEPA~$\rightarrow$~LiDAR envisagé pour ce stage, à étudier en
+détail avant d'adapter le code V-JEPA vidéo.
+\begin{itemize}
+    \item Papier : \url{https://arxiv.org/abs/2501.04969}
+    \item Code : \url{https://github.com/HaoranZhuExplorer/adljepa}
+\end{itemize}
+
+À noter également \textbf{DeSPITE} (2025), qui propose un apprentissage contrastif
+skeleton--point cloud--IMU--texte sur des données proches de MM-Fi.
+
+\section{Recommandation}
+
+Il n'existe presque aucun dataset LiDAR indoor avec des activités domestiques riches --
+MM-Fi (Tier~1) reste le seul vraiment comparable au protocole du laboratoire. Stratégie en
+deux temps :
+
+\begin{enumerate}
+    \item \textbf{Pré-entraînement domaine-proche} : MM-Fi + HuCenLife + JRDB + HmPEAR +
+    STCrowd (\textasciitilde{}1M frames cumulées, indoor/humain) $\rightarrow$ apprentissage
+    des priors spatio-temporels les plus pertinents pour le domaine cible.
+    \item \textbf{Pré-entraînement volume générique} : ONCE (1M scènes non labellisées,
+    conçu pour le SSL) + SemanticKITTI/nuScenes/Argoverse~2/PandaSet pour la robustesse
+    géométrique générale du nuage de points, malgré le domaine outdoor éloigné du contexte
+    domestique.
+\end{enumerate}
+
+\textbf{Point de vigilance} : la résolution des capteurs varie fortement d'un dataset à
+l'autre (16 à 300 canaux). Il faudra normaliser explicitement la représentation (résolution
+angulaire, portée, fréquence) avant le transfert vers l'Unitree L2, sous peine de reproduire
+la chute de performance au changement de capteur déjà documentée dans l'article~III de la
+revue de littérature (LiDAR Point Cloud Feature Learning with One-Class SVM).
+
+\end{document}

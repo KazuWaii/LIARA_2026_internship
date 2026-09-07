@@ -1,0 +1,24 @@
+EMPTY TOKEN — GESTION DES CELLULES SANS RETOUR
+Mathieu Bonneau — 30 août 2026
+
+PROBLÈME
+Certaines cellules de la grille (x,y,z,intensité) n'ont aucun retour LiDAR
+(occlusion, hors portée). Coder ça en (0,0,0,0) est ambigu avec un vrai point
+proche de l'origine (post-recentrage). Et si le masque ne cache jamais que du
+occupé, sa seule position révèle déjà qu'il y a quelque chose (fuite).
+
+APPROCHE RETENUE (synthèse AD-L-JEPA + NOMAE)
+- Empty token appris (cellule vide visible en contexte) + mask token partagé,
+  indifférencié vide/occupé (cellule masquée) — empêche la fuite. Source :
+  AD-L-JEPA, confirmé indépendamment par Voxel-MAE (Hess et al., WACV 2023).
+- Perte scindée en deux termes pondérés : masqué-vide vs masqué-occupé.
+- Raffinement NOMAE (2025, arXiv 2502.20316) : restreindre les cellules vides
+  éligibles comme cibles au voisinage de la silhouette du corps, pas toute la
+  grille — évite de gaspiller le signal sur le vide de fond (mur, sol), plus
+  pertinent chez nous qu'en conduite autonome vu la sparsité extrême attendue
+  (une personne recentrée dans une grille très majoritairement vide).
+
+SOURCES
+- AD-L-JEPA : arxiv.org/pdf/2501.04969
+- Voxel-MAE (Hess et al.) : arxiv.org/pdf/2207.00531
+- NOMAE : arxiv.org/abs/2502.20316
