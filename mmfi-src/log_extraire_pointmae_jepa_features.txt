@@ -1,0 +1,14 @@
+groupes totaux: (4320, 8, 64, 32, 3)
+chargement encodeur adapte (mmfi-src/checkpoints_pointmae_jepa.pt)...
+forward GPU (encodage + pooling mean+max par frame)...
+  0/4320  [2s]
+  640/4320  [16s]
+  1280/4320  [31s]
+  1920/4320  [46s]
+  2560/4320  [60s]
+  3200/4320  [75s]
+  3840/4320  [90s]
+forward GPU termine en 98.8s
+features: (4320, 8, 768)
+features sauvegardees -> mmfi-src/features_pointmae_jepa.npz
+EXTRACTION_POINTMAE_JEPA_FEATURES_OK

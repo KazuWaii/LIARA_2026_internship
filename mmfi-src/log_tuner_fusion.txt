@@ -1,0 +1,14 @@
+sequences Laplacien: (1080, 600)  sequences Point-MAE: (1080, 1536)
+X_fusion: (1080, 2136)
+train: (864, 2136)  val: (216, 2136)
+
+=== SVM (C=3.0, gamma=scale, meme reglage que Point-MAE seul) ===
+   accuracy=0.954 f1_macro=0.954
+
+=== SVM regle sur la fusion (GridSearchCV, GroupKFold sujet) ===
+   meilleurs params={'clf__C': 3.0, 'clf__gamma': 'scale', 'clf__kernel': 'rbf'} cv_acc=0.927 VAL accuracy=0.954 f1_macro=0.954
+
+
+=== RESUME ===
+Laplacien seul (0,659) | Point-MAE seul (0,949) | Fusion (ci-dessus)
+TUNER_FUSION_OK

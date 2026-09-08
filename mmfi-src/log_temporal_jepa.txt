@@ -1,0 +1,13 @@
+train: (3456, 8, 768)  val: (864, 8, 768)
+  [temporal_jepa graine=0] etape    0/1500  l1=0.8152 unif=-0.6544
+  [temporal_jepa graine=0] etape  200/1500  l1=0.2568 unif=-3.1247
+  [temporal_jepa graine=0] etape  400/1500  l1=0.3873 unif=-3.3984
+  [temporal_jepa graine=0] etape  600/1500  l1=0.4640 unif=-3.5638
+  [temporal_jepa graine=0] etape  800/1500  l1=0.4980 unif=-3.5809
+  [temporal_jepa graine=0] etape 1000/1500  l1=0.5117 unif=-3.6183
+  [temporal_jepa graine=0] etape 1200/1500  l1=0.5400 unif=-3.6509
+  [temporal_jepa graine=0] etape 1400/1500  l1=0.5403 unif=-3.6933
+
+RESULTAT temporal_jepa + SVM : accuracy=0.404 f1_macro=0.394
+reference (mean+max pooling fige + SVM) : 0.949
+ENTRAINEMENT_TEMPORAL_JEPA_OK

@@ -1,0 +1,49 @@
+sequences totales: 1080  nb_fenetres=4  longueur_fenetre=16
+extraction CPU (projection grille) parallele sur 14 processus...
+  100/1080 sequences  [31.9s ecoulees, ~313s restantes]
+  200/1080 sequences  [53.6s ecoulees, ~236s restantes]
+  300/1080 sequences  [74.1s ecoulees, ~193s restantes]
+  400/1080 sequences  [98.1s ecoulees, ~167s restantes]
+  500/1080 sequences  [120.2s ecoulees, ~139s restantes]
+  600/1080 sequences  [140.8s ecoulees, ~113s restantes]
+  700/1080 sequences  [162.9s ecoulees, ~88s restantes]
+  800/1080 sequences  [182.7s ecoulees, ~64s restantes]
+  900/1080 sequences  [206.3s ecoulees, ~41s restantes]
+  1000/1080 sequences  [226.7s ecoulees, ~18s restantes]
+extraction CPU terminee en 242.8s -- 4320 fenetres
+chargement V-JEPA ViT-L/16 (checkpoint officiel, video naturelle)...
+cles checkpoint: ['encoder', 'predictor', 'opt', 'scaler', 'target_encoder', 'epoch', 'loss', 'batch_size', 'world_size', 'lr']
+chargement: 0 manquantes, 0 inattendues
+forward GPU (encodage + pooling mean+max)...
+contextlib.py:109: FutureWarning: `torch.backends.cuda.sdp_kernel()` is deprecated. In the future, this context manager will be removed. Please see `torch.nn.attention.sdpa_kernel()` for the new context manager, with updated signature.
+  0/4320  [1s]
+  160/4320  [6s]
+  320/4320  [10s]
+  480/4320  [14s]
+  640/4320  [19s]
+  800/4320  [23s]
+  960/4320  [27s]
+  1120/4320  [32s]
+  1280/4320  [36s]
+  1440/4320  [41s]
+  1600/4320  [45s]
+  1760/4320  [49s]
+  1920/4320  [54s]
+  2080/4320  [58s]
+  2240/4320  [63s]
+  2400/4320  [67s]
+  2560/4320  [71s]
+  2720/4320  [76s]
+  2880/4320  [80s]
+  3040/4320  [84s]
+  3200/4320  [89s]
+  3360/4320  [93s]
+  3520/4320  [97s]
+  3680/4320  [102s]
+  3840/4320  [106s]
+  4000/4320  [110s]
+  4160/4320  [115s]
+forward GPU termine en 118.9s
+features: (4320, 2048)
+features sauvegardees -> mmfi-src/features_vjepa.npz
+EXTRACTION_VJEPA_OK

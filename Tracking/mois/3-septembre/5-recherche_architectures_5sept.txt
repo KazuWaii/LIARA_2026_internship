@@ -440,19 +440,223 @@ MEILLEUR RESULTAT FINAL DE LA SESSION : SVM regle sur features Point-MAE
 gelees, 0,949 (split sujet) / 0,926 (split environnement) -- cf. etape 7.
 
 
-SESSION TERMINEE (5 septembre apres-midi) : README.md mis a jour avec
-toutes les sections ci-dessus, y compris la PERCEE finale (etape 6).
-Bilan complet de la session (nuit + apres-midi) :
-  - Spectre Laplacien regle+valide : 0,617 -> 0,659 (ancien meilleur LiDAR-only)
+ETAPE 6 BIS -- JEPA CONTINU SUR L'ENCODEUR POINT-MAE (3 VARIANTES) -- ECHEC ROBUSTE
+
+Demande explicite ("Try to get results adding jepa architecture to current
+performing method that we have" -- "current performing method" = transfer
+learning Point-MAE, 0,949). Interpretation retenue : PAS un JEPA from
+scratch (deja teste, echec documente) -- l'encodeur PART des poids
+ShapeNet et continue de s'ADAPTER a MM-Fi de facon auto-supervisee
+(masquage de groupes + prediction en espace d'embedding), sans les labels
+de classification -- une troisieme option entre le probing gele pur et le
+fine-tuning supervise complet (deja teste, echoue, 0,894).
+
+modele_pointmae_jepa.py (nouveau) : ModelePointMAEJepa -- encodeur_contexte
+(EncodeurPointMAE, init ShapeNet) + encodeur_cible (copie EMA) +
+Predicteur (REUTILISE predicteur.py tel quel, generique) + token_masque
+appris. Masquage au niveau des GROUPES, PAR FRAME (comme Point-MAE
+original) : ~50% des 64 groupes en contexte, le reste en cible.
+perte_uniformite_poolee (REUTILISE perte.py) activee des le depart (poids
+1.0) -- leçon retenue du JEPA maison (README, "Reconstruction V-JEPA") :
+EMA+stop-gradient+masquage seuls ne suffisent PAS a empecher l'effondrement
+sur ce type de donnees, meme avec un encodeur pre-entraine.
+
+entrainer_pointmae_jepa.py : entraine sur les groupes BRUTS deja
+precalcules (groupes_pointmae.npz, cf. etape fine-tuning precedente),
+filtre au split TRAIN. Rapide (~0,3-0,6s/pas, features deja extraites
+cote CPU).
+
+TROIS VARIANTES TESTEES :
+  1. Agressive : LR=1e-4, 3000 pas, masquage GROUPES ALEATOIRES (IID)
+  2. Douce : LR=1e-5 (10x plus faible), 500 pas, meme masquage aleatoire
+  3. Masquage par BLOC spatial (comme Point-MAE/V-JEPA original -- PAS un
+     sous-ensemble IID, mais les groupes les plus proches d'un centre
+     "graine" tire au hasard, region spatialement CONTIGUE) : LR=1e-5,
+     1500 pas -- _masque_bloc() ajoutee a modele_pointmae_jepa.py
+
+Entrainement SAIN dans les 3 cas (aucun effondrement, sim_poolee 0,01-0,15,
+perte L1 decroissante normalement 0,6->0,25-0,45) -- MAIS resultat en aval
+(features re-extraites via encodeur adapte + SVM regle, meme protocole que
+la reference) :
+
+  variante                          | sujet | environnement
+  agressive (LR=1e-4, alea)         | 0,793 | 0,763
+  douce (LR=1e-5, alea)             | 0,795 | 0,776
+  bloc (LR=1e-5, style V-JEPA)      | 0,789 | 0,760
+  reference (Point-MAE fige + SVM) | 0,949 | 0,926
+
+LES TROIS VARIANTES DEGRADENT LE RESULTAT DE ~15-17 POINTS, DE FACON QUASI
+IDENTIQUE -- ni le taux d'apprentissage (10x d'ecart entre variantes 1 et 2,
+meme resultat) ni le style de masquage (IID vs bloc contigu, meme resultat)
+n'expliquent la difference. Conclusion robuste : la continuation
+auto-supervisee sur seulement ~900 sequences (27648 frames apres
+aplatissement, mais tres redondantes -- meme sujet/action repete sur des
+centaines de frames consecutives) efface les features ShapeNet utiles plus
+vite qu'elle n'apprend quoi que ce soit d'utile sur MM-Fi, meme sans
+effondrement mesurable au sens de la similarite poolee -- l'effondrement
+n'est PAS le seul mecanisme par lequel une continuation peut degrader la
+qualite en aval.
+
+Diagnostic explore (pas la cause principale) : ~30% des frames isolees ont
+moins de 64 points reels (necessitent un padding par repetition des
+centres FPS, cf. bug corrige dans tokenisation.py) -- rend une partie du
+pretexte "predire un groupe masque" partiellement triviale (copie d'un
+doublon deja en contexte), mais la degradation est la MEME meme apres
+avoir teste des variantes avec des reglages tres differents -- suggere que
+ce n'est pas le facteur dominant.
+
+
+ETAPE 6 TER -- JEPA TEMPOREL SUR FEATURES GELEES -- ECHEC NET
+
+Alternative testee : au lieu de re-adapter l'encodeur SPATIAL, garder les
+features Point-MAE GELEES (ShapeNet, jamais touchees) et ajouter un JEPA
+TEMPOREL par-dessus -- un petit Transformer contexte/cible/predicteur
+(REUTILISE Encodeur/Predicteur du reste du projet, agnostiques a la
+dimension) apprend a predire l'embedding de frames masquees a partir des
+frames visibles d'une fenetre (8 frames/fenetre, 768 dims/frame) -- teste
+si un agregateur temporel APPRIS (auto-supervise) bat le simple pooling
+mean+max fige utilise jusqu'ici.
+
+entrainer_temporal_jepa.py (nouveau) : ModeleTemporalJepa, dim=256,
+embedding de position appris (8 positions seulement -> table, pas de
+sin-cos), meme recette anti-effondrement (perte_uniformite_poolee).
+1500 pas, tres rapide (8 tokens seulement).
+
+RESULTAT : 0,404 (contre 0,949 pour le simple pooling fige) -- BIEN PIRE,
+et la perte L1 augmente meme pendant l'entrainement (0,26->0,54) au lieu de
+diminuer, signe que le petit Transformer (initialise aleatoirement,
+entraine sur seulement 3456 fenetres train) n'apprend rien d'utile pour la
+tache en aval -- meme lecon que l'echec JEPA original : un Transformer
+appris from scratch sur MM-Fi seul, meme minuscule (quelques couches),
+n'a pas assez de donnees pour bien faire, et degrade un signal deja
+excellent (le pooling non-appris) plutot que l'ameliorer.
+
+
+ETAPE 6 QUATER -- CHECKPOINT POINT-MAE ALTERNATIF (MODELNET40 FINETUNE) -- NEUTRE
+
+Teste un AUTRE checkpoint officiel Point-MAE : modelnet_8k.pth (265 Mo,
+deja fine-tune sur ModelNet40, 40 classes, avec cls_token+tete de
+classification en plus de l'encodeur MAE de base) -- meme architecture
+d'encodeur (memes cles apres retrait du prefixe module. et des cles
+cls_*/cls_head_finetune, chargement strict=True reussi), teste comme
+"autre backbone" possible.
+
+RESULTAT : 0,940 (sujet) / 0,905 (environnement) -- legerement EN DESSOUS
+du checkpoint MAE brut (0,949/0,926). Lecture : l'adaptation ModelNet40
+specialise les features vers CETTE tache 40-classes precise (objets
+rigides complets, via un chemin cls_token qu'on n'utilise meme pas), au
+detriment d'une partie de l'information geometrique generique que le MAE
+brut avait conservee. Le checkpoint MAE brut reste le meilleur choix.
+
+
+ETAPE 6 QUINQUIES -- VRAI V-JEPA OFFICIEL (VIT-L/16, VIDEO NATURELLE) -- ECHEC MAIS >> HASARD
+
+Demande explicite de clarification : "you need to get a vit trained --
+either downloading a pre-trained one on the web related to our project, or
+training one by yourself". Interpretation retenue : le vrai checkpoint
+V-JEPA officiel (facebookresearch/jepa, PAS notre reimplementation maison),
+applique a la methode GRILLE (la grille (T,4,H,W) a exactement la forme
+d'un clip video, candidat naturel pour un ViT video pre-entraine).
+
+Telecharge vitl16.pth.tar (5,1 Go, dl.fbaipublicfiles.com/jepa/vitl16/) --
+EXACTEMENT le checkpoint du config vitl16.yaml deja copie dans
+reference_vjepa/ depuis la reconstruction V-JEPA du 3 septembre. Code
+source REEL reutilise tel quel (extraire_vjepa_features.py importe
+reference_vjepa/src/models/vision_transformer.vit_large directement) --
+PAS de retro-ingenierie ici (contrairement a Point-MAE, obligatoire a
+cause de l'absence de CUDA Toolkit) : ce code est PUR PYTORCH, aucune
+extension CUDA (attention via scaled_dot_product_attention natif).
+
+ADAPTATIONS (domaine tres different -- video RGB naturelle vs grille
+d'occupation LiDAR) :
+  - 3 canaux au lieu de 4 : garde x,y,z (positions reelles), retire le
+    canal de validite -- le conv3D pre-entraine attend in_chans=3 EXACT.
+  - Standardisation par-fenetre (moyenne/ecart-type sur les cellules
+    VALIDES seulement) des 3 canaux avant le patch embedding -- les
+    valeurs xyz brutes (metres) sont d'une echelle tres differente des
+    pixels RGB normalises.
+  - AUCUNE modification d'architecture necessaire pour la taille de
+    grille : interpolate_pos_encoding (deja dans leur code officiel) gere
+    automatiquement l'interpolation trilineaire du positional embedding
+    natif (14x14x8=1568 tokens) vers notre grille 4x6x8=192 tokens.
+
+Verification avant le run complet : chargement du target_encoder (prefixe
+module.backbone. retire) avec strict=True reussi, 0 cle manquante/
+inattendue -- confirme l'integration correcte. Extraction sur les 1080
+sequences (4 fenetres/sequence, meme convention que Point-MAE) : 243s CPU
+(projection grille parallele) + 119s GPU (forward ViT-L 305M parametres,
+lots de 8).
+
+RESULTAT :
+  SVM regle : 0,444 (sujet) / 0,333 (environnement)
+  reference (Point-MAE + SVM) : 0,949 / 0,926
+
+TRES EN DESSOUS de Point-MAE, mais NETTEMENT AU-DESSUS du hasard (0,037) --
+un vrai transfert existe (V-JEPA a appris QUELQUE CHOSE de generalisable),
+mais bien plus faible que le transfert point-cloud->point-cloud
+(ShapeNet->MM-Fi, meme famille de donnees : nuages de points 3D). Confirme
+que la NATURE du domaine source (point cloud 3D vs video RGB naturelle)
+compte plus que la taille du modele (305M pour V-JEPA vs 22M pour
+Point-MAE) ou l'ampleur du pre-entrainement (Kinetics-710+SSv2+HowTo100M,
+video a tres grande echelle).
+
+
+ETAPE 6 SEXTUPLE -- FUSION POINT-MAE + LAPLACIEN -- SEUL GAIN, NOUVEAU MEILLEUR
+
+Suite a "You can try other add-in to have a broader comparison" : PAS du
+JEPA, mais reste dans l'esprit "combiner plusieurs sources de signal".
+tuner_fusion.py (nouveau) : concatene les features gelees Point-MAE
+(ShapeNet, temporellement poolees, 1536 dims) et les valeurs propres du
+spectre Laplacien (600 dims, quadrants) -- les deux caches n'ayant pas le
+meme nombre de fenetres/sequence (4 vs 8), fusion au niveau de la SEQUENCE
+(moyenne des fenetres de chaque sequence pour les deux jeux de features,
+cle unique (env,sujet,label) puisque chaque sujet ne fait chaque action
+qu'une fois) plutot qu'au niveau de la fenetre.
+
+RESULTAT (SVM C=3.0/gamma=scale, meme reglage que Point-MAE seul) :
+
+  Point-MAE seul (reference)          : 0,949 (sujet) / 0,926 (environnement)
+  Laplacien seul (reference)          : 0,659
+  Fusion Point-MAE + Laplacien        : 0,954 (sujet) / 0,937 (environnement)
+
+SEUL ADD-IN QUI AMELIORE LA REFERENCE -- gain modeste (+0,005/+0,011) mais
+present sur LES DEUX splits, donc probablement reel et pas du bruit
+(coherent avec le fait que GridSearchCV sur la fusion trouve les MEMES
+hyperparametres optimaux, C=3.0/gamma=scale, cv_acc=0,927). Lecture : les
+deux familles de features (geometrie spectrale classique du graphe de
+proximite + features apprises generiques ShapeNet) sont legerement
+COMPLEMENTAIRES -- chacune capture une facette un peu differente de la
+meme pose/mouvement. NOUVEAU MEILLEUR RESULTAT DU PROJET.
+
+
+BILAN DE LA MANCHE "ADD-INS" (6 tentatives, 5 echecs relatifs a la
+reference + 1 gain) : ajouter du JEPA au pipeline Point-MAE ne marche PAS,
+de facon robuste et testee sous plusieurs angles (3 variantes de
+continuation de l'encodeur, 1 agregateur temporel appris, 1 vrai ViT video
+officiel telecharge) -- ce n'est ni un probleme de reglage (LR x10, meme
+resultat), ni de style de masquage (aleatoire vs bloc, meme resultat), ni
+de taille/qualite du pre-entrainement source (ViT-L 305M, vraiment
+pre-entraine par Meta AI sur video a grande echelle, transfere quand meme
+moins bien qu'un ViT-S 22M pre-entraine sur point clouds). Le seul gain
+trouve n'est PAS du JEPA : fusionner les features Point-MAE et Laplacien.
+
+
+SESSION TERMINEE (5 septembre soir) : README.md et le document de synthese
+utilisateur (mmfi_har_results_summary.docx) mis a jour avec toutes les
+sections ci-dessus. Bilan complet de la session (nuit + apres-midi + soir) :
+  - Spectre Laplacien regle+valide : 0,617 -> 0,659 (ancien meilleur LiDAR-only classique)
   - Squelette-plafond (verite-terrain, pas LiDAR-only) verifie anti-fuite : 0,994+/-0,007
   - Distillation squelette->LiDAR : negatif mais informatif, 0,523+/-0,037,
     indiscernable du from-scratch -- documente pour eviter de retenter sans
     nouvelle idee
   - RANSAC isolation Laplacien : negatif net, 0,659->0,24 -- non adopte
-  - **Transfer learning ShapeNet (Point-MAE fige) : 0,934+/-0,006 (split sujet),
-    0,908+/-0,009 (split environnement) -- NOUVEAU MEILLEUR RESULTAT DU
-    PROJET, vrai LiDAR-only, verifie anti-fuite, depasse la litterature
-    de reference (81-90%)**
+  - Transfer learning ShapeNet (Point-MAE fige) : 0,934+/-0,006 (split sujet),
+    0,908+/-0,009 (split environnement, tete lineaire) -- percee majeure
+  - 6 "add-ins" JEPA/architecture testes sur Point-MAE : 5 echecs robustes
+    (3x continuation JEPA encodeur, 1x JEPA temporel, 1x vrai V-JEPA video)
+  - **Fusion Point-MAE + Laplacien : 0,954 (split sujet) / 0,937 (split
+    environnement) -- NOUVEAU MEILLEUR RESULTAT DU PROJET, toutes methodes
+    confondues, LiDAR-only**
 
 Piste rang 4-6 restante si repris (detecteur 3D appris PV-RCNN/OpenPCDet
 pour l'isolation Laplacien) : probablement moins prioritaire maintenant que

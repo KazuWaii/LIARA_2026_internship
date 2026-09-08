@@ -139,6 +139,21 @@ entre eux.
   cf. section dédiée
   [PERCÉE — transfer learning ShapeNet](#percée-5-septembre-après-midi--transfer-learning-shapenet-point-mae--0934)
   juste en dessous.
+- **Suite (5 septembre soir) — 6 "add-ins" JEPA testés sur Point-MAE, 5
+  échecs robustes + 1 gain non-JEPA** : sur demande explicite d'étendre la
+  comparaison ("adding jepa architecture", puis "get a vit trained... on
+  the web or training one yourself"). Trois variantes de continuation JEPA
+  de l'encodeur (masquage aléatoire agressif/doux, masquage par bloc style
+  V-JEPA) dégradent TOUTES le résultat de ~15-17 points, peu importe le
+  réglage — conclusion robuste, pas un problème de tuning. Un agrégateur
+  temporel appris par-dessus les features gelées fait pire encore (0,404).
+  Le vrai checkpoint V-JEPA officiel (ViT-L/16, 305M, vidéo naturelle,
+  téléchargé et chargé sans aucune clé manquante) transfère nettement moins
+  bien que Point-MAE (0,444 contre 0,949) mais reste très au-dessus du
+  hasard. **Seul gain trouvé : fusionner les features Point-MAE avec le
+  spectre Laplacien (pas du JEPA) — nouveau meilleur résultat du projet,
+  0,954 (split sujet) / 0,937 (split environnement).** Cf. section
+  [Suite — "add-ins" JEPA sur Point-MAE](#suite-5-septembre-soir--add-ins-jepa-sur-point-mae--tous-négatifs-sauf-la-fusion).
 
 ## Nouvelles pistes HAR (4 septembre matin) — squelette auxiliaire + spectre Laplacien
 
@@ -443,6 +458,80 @@ la personne reste la même heuristique DBSCAN que le pipeline Laplacien
 avec plus de fenêtres vu la marge déjà large). Nouveau meilleur résultat du
 projet, de loin — cf. `Tracking/mois/3-septembre/5-recherche_architectures_5sept.txt`
 pour le détail complet.
+
+## Suite (5 septembre soir) — "add-ins" JEPA sur Point-MAE : tous négatifs, sauf la fusion
+
+Sur demande explicite ("try to get results adding jepa architecture to
+current performing method" puis "get a vit trained... downloading a
+pre-trained one... or training one by yourself") : six variantes testées,
+toutes comparées à la référence Point-MAE+SVM (0,949/0,926). Détail complet
+dans `Tracking/mois/3-septembre/5-recherche_architectures_5sept.txt`
+(étapes 6 bis à 6 sextuple).
+
+| add-in | sujet | environnement | verdict |
+|---|---|---|---|
+| Point-MAE + SVM (référence) | 0,949 | 0,926 | — |
+| + JEPA continu (masquage aléatoire, LR=1e-4) | 0,793 | 0,763 | échec |
+| + JEPA continu, plus doux (LR=1e-5, 10x plus faible) | 0,795 | 0,776 | échec, même ampleur |
+| + JEPA continu, masquage par bloc (style V-JEPA) | 0,789 | 0,760 | échec, même ampleur |
+| + JEPA temporel (agrégateur appris sur les 8 frames) | 0,404 | — | échec net |
+| Autre checkpoint : Point-MAE fine-tuné ModelNet40 | 0,940 | 0,905 | neutre/légèrement pire |
+| **V-JEPA officiel réel (ViT-L/16, 305M, vidéo naturelle)** | 0,444 | 0,333 | échec, mais >> hasard |
+| **Fusion Point-MAE + Laplacien** | **0,954** | **0,937** | **seul gain, nouveau meilleur** |
+
+**JEPA continu sur l'encodeur (3 variantes : masquage aléatoire agressif,
+masquage aléatoire doux, masquage par bloc façon V-JEPA/Point-MAE original)** :
+`modele_pointmae_jepa.py`/`entrainer_pointmae_jepa.py` — repart des poids
+ShapeNet (pas d'un init aléatoire, contrairement à l'échec JEPA initial),
+continue l'adaptation par masquage de groupes + prédiction en espace
+d'embedding (EMA + `perte_uniformite_poolee` activée dès le départ,
+leçon retenue). Entraînement toujours SAIN (aucun effondrement, `sim_poolee`
+0,01-0,15) mais **les trois variantes dégradent le résultat de ~15-17 points,
+peu importe le taux d'apprentissage ou le style de masquage** — conclusion
+robuste : ce n'est ni un problème de réglage ni de style de masquage, la
+continuation auto-supervisée sur seulement ~900 séquences efface les
+features ShapeNet utiles plus vite qu'elle n'apprend quoi que ce soit
+d'utile sur MM-Fi.
+
+**JEPA temporel** (`entrainer_temporal_jepa.py`) : au lieu de ré-adapter
+l'encodeur spatial, garde les features Point-MAE gelées et ajoute un petit
+Transformer contexte/cible/prédicteur PAR-DESSUS (remplace le simple
+pooling mean+max par un agrégateur temporel appris, auto-supervisé sur les
+8 frames/fenêtre). Résultat net : 0,404, bien pire que le pooling fixe —
+un agrégateur appris from scratch sur 864 séquences n'apporte rien face à
+un pooling non-appris déjà excellent.
+
+**V-JEPA officiel réel** (`extraire_vjepa_features.py`) : checkpoint
+Meta AI téléchargé directement (`vitl16.pth.tar`, 5,1 Go, ViT-L/16 305M
+paramètres, pré-entraîné vidéo naturelle Kinetics-710/SSv2/HowTo100M) —
+code source RÉEL de `reference_vjepa/` réutilisé tel quel (pur PyTorch,
+aucune extension CUDA, contrairement à Point-MAE), chargé avec 0 clé
+manquante/inattendue. Appliqué à la méthode GRILLE (structure de clip
+vidéo native) : 3 canaux (x,y,z, canal de validité retiré) + standardisation
+par-fenêtre, `interpolate_pos_encoding` de leur propre code gère
+automatiquement notre grille 4×6×8 (192 tokens) au lieu de leur 14×14×8
+natif (1568), aucune modification d'architecture nécessaire. Résultat :
+0,444/0,333 — **très en dessous de Point-MAE mais nettement au-dessus du
+hasard** : un vrai transfert existe, mais bien plus faible que le transfert
+point-cloud→point-cloud (ShapeNet→MM-Fi). Confirme que la NATURE du domaine
+source (point cloud 3D vs vidéo RGB naturelle) compte plus que la taille ou
+la qualité du pré-entraînement.
+
+**Fusion Point-MAE + Laplacien** (`tuner_fusion.py`) : concatène simplement
+les features gelées Point-MAE et les valeurs propres du spectre Laplacien
+(moyennées par séquence pour aligner les deux caches, nombres de fenêtres
+différents) puis SVM réglé. **Seul add-in qui améliore la référence** :
+0,954/0,937 (contre 0,949/0,926) — gain modeste mais présent sur les DEUX
+splits. Pas du JEPA, mais répond à la demande de "comparaison plus large" :
+les deux familles de features (géométrie spectrale classique + features
+apprises génériques) sont légèrement complémentaires.
+
+**Conclusion generale de cette manche** : ajouter du JEPA (sous quelque
+forme testée) au pipeline Point-MAE ne marche pas, de façon robuste
+(3 variantes de continuation, 1 agrégateur temporel, 1 vrai ViT vidéo
+téléchargé — 6 tentatives, 6 échecs relatifs à la référence). Le seul gain
+vient d'une fusion de features non-JEPA. Nouveau meilleur résultat du
+projet : **0,954 (split sujet) / 0,937 (split environnement)**.
 
 ## Recherche architectures + squelette-plafond + distillation (5 septembre)
 
