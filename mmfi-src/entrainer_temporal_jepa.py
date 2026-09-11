@@ -25,7 +25,7 @@ import torch
 from torch import nn
 
 from dataset_jepa import decouper_train_val, decouper_train_val_environnement
-from entrainer_laplacien_v4 import _masque
+from protocole import masque_lignes
 from encodeur import Encodeur
 from predicteur import Predicteur
 from perte import perte_uniformite_poolee
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     data = np.load("mmfi-src/features_pointmae.npz")
     X, y, envs, sujets = data["X"], data["y"], data["envs"], data["sujets"]
     seq_train, seq_val = decouper_train_val()
-    m_train, m_val = _masque(seq_train, envs, sujets), _masque(seq_val, envs, sujets)
+    m_train, m_val = masque_lignes(seq_train, envs, sujets), masque_lignes(seq_val, envs, sujets)
     X_train_np, X_val_np = X[m_train], X[m_val]
     y_train, y_val = y[m_train], y[m_val]
     print(f"train: {X_train_np.shape}  val: {X_val_np.shape}")

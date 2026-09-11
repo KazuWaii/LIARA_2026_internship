@@ -11,14 +11,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 
 from dataset_jepa import decouper_train_val
-from entrainer_laplacien_v4 import _masque
+from protocole import masque_lignes
 from entrainer_pointmae_finetune import entrainer_pointmae_finetune
 
 if __name__ == "__main__":
     data = np.load("mmfi-src/groupes_pointmae.npz")
     groupes, centres, y, envs, sujets = data["groupes"], data["centres"], data["y"], data["envs"], data["sujets"]
     seq_train, seq_val = decouper_train_val()
-    m_train, m_val = _masque(seq_train, envs, sujets), _masque(seq_val, envs, sujets)
+    m_train, m_val = masque_lignes(seq_train, envs, sujets), masque_lignes(seq_val, envs, sujets)
     gt, ct, yt = groupes[m_train], centres[m_train], y[m_train]
     gv, cv, yv = groupes[m_val], centres[m_val], y[m_val]
     print(f"train: {gt.shape}  val: {gv.shape}")

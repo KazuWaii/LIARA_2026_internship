@@ -386,6 +386,11 @@ pas, lot=64, AdamW, graines 0/1/2) :**
 | **Point-MAE (ShapeNet, figé) — tête linéaire, split environnement (protocole papier)** | **0,908 ± 0,009** |
 | squelette-plafond (vérité-terrain, pas LiDAR-only) | 0,994 ± 0,007 |
 
+> ⚠️ **Chiffres split environnement à régénérer** — aucun script du dépôt ne
+> les produisait avant la refactorisation du 11 septembre (cf. section
+> dédiée). Le code corrigé les calcule désormais ; les valeurs ci-dessus
+> viennent d'exécutions ad hoc non commitées.
+
 **+0,275 sur l'ancien meilleur résultat LiDAR-only (0,659), dépasse même le
 81-90% de la littérature de référence (arXiv:2509.23255) sur un protocole
 comparable (split environnement), et approche le plafond squelette
@@ -411,6 +416,11 @@ Laplacien) :
 | RandomForest (défaut) | 0,846 | — |
 | HistGradientBoosting (hyperparams Laplacien) | 0,910 | — |
 | **SVM réglé (C=3,0, gamma=scale, GroupKFold sujet)** | **0,949** | **0,926** |
+
+> ⚠️ **Chiffres split environnement à régénérer** — aucun script du dépôt ne
+> les produisait avant la refactorisation du 11 septembre (cf. section
+> dédiée). Le code corrigé les calcule désormais ; les valeurs ci-dessus
+> viennent d'exécutions ad hoc non commitées.
 
 Le SVM réglé (déterministe à features fixées, pas de graine à faire varier)
 **dépasse légèrement la tête linéaire sur les deux splits** — nouveau
@@ -478,6 +488,11 @@ dans `Tracking/mois/3-septembre/5-recherche_architectures_5sept.txt`
 | Autre checkpoint : Point-MAE fine-tuné ModelNet40 | 0,940 | 0,905 | neutre/légèrement pire |
 | **V-JEPA officiel réel (ViT-L/16, 305M, vidéo naturelle)** | 0,444 | 0,333 | échec, mais >> hasard |
 | **Fusion Point-MAE + Laplacien** | **0,954** | **0,937** | **seul gain, nouveau meilleur** |
+
+> ⚠️ **Chiffres split environnement à régénérer** — aucun script du dépôt ne
+> les produisait avant la refactorisation du 11 septembre (cf. section
+> dédiée). Le code corrigé les calcule désormais ; les valeurs ci-dessus
+> viennent d'exécutions ad hoc non commitées.
 
 **JEPA continu sur l'encodeur (3 variantes : masquage aléatoire agressif,
 masquage aléatoire doux, masquage par bloc façon V-JEPA/Point-MAE original)** :
@@ -762,6 +777,32 @@ de la methode grille (masquage par-echantillon a deux groupes, perte L1,
 scheduleurs) est documente dans la section "Reconstruction V-JEPA"
 plus bas. La description de la methode POINTS dans ces sous-sections reste
 a jour (non touchee par la reconstruction).
+
+### `protocole.py` — protocole d'évaluation commun (11 septembre)
+
+Module partagé par **toutes** les pipelines de features gelées (Laplacien,
+Point-MAE, fusion). Il regroupe ce que chaque script d'évaluation
+réimplémentait dans son coin :
+
+- `decouper_train_val()` / `decouper_train_val_environnement()` — les deux
+  splits, déplacés depuis `dataset_jepa.py` (qui importe torch, inutile pour
+  du scikit-learn ; il les ré-exporte pour les appelants historiques).
+- `SPLITS` — le couple (sujet, environnement) sur lequel tout résultat doit
+  être rapporté.
+- `masque_lignes()` — masque booléen des lignes de features d'un split
+  (anciennement `entrainer_laplacien_v4._masque`, importé depuis un script
+  d'entraînement par sept autres fichiers).
+- `pool_temporel()` / `moyenne_par_sequence()` — les deux agrégations
+  (anciennement dans `tuner_pointmae_classique` / `tuner_fusion`).
+- `SVM_TUNE_PARAMS`, `HGB_TUNE_PARAMS`, `GRILLE_SVM` — les hyperparamètres et
+  la grille de référence du projet, en un seul endroit.
+- `regler_svm()` — GridSearchCV + GroupKFold **par sujet**, sur le **train
+  seul**, scaler à l'intérieur du pipeline (donc refité dans chaque fold).
+- `evaluer_classifieurs()` — SVM défaut / RF défaut / HGB réglé / SVM réglé.
+- **`evaluer_deux_splits()`** — fait passer n'importe quelle fonction
+  d'évaluation sur les **deux** splits. C'est le garde-fou : une nouvelle
+  pipeline ne peut plus publier un résultat split sujet sans son équivalent
+  split environnement.
 
 ### `mmfi_dataset.py` — chargement MM-Fi (partagé)
 
@@ -1389,8 +1430,83 @@ convolution dépend de `noyau_spatial`, différent entre les deux profils :
 10 vs 16 — un chargement direct du state_dict échouerait), canal d'intensité,
 méthode points pour ONCE.
 
+## Refactorisation (11 septembre) — protocole commun + consolidation
+
+Déclenchée par un audit du réglage du SVM (`tuner_pointmae_classique.py`).
+
+**Le réglage lui-même est sain** — vérifié point par point : `GridSearchCV`
+ne voit que le train (`gs.fit(X_train, y_train, groups=groupes_train)`), la
+validation ne sert qu'à un `predict` final ; `GroupKFold` est groupé par
+sujet, donc les fenêtres corrélées d'une même séquence ne traversent pas les
+folds ; le `StandardScaler` est dans le `Pipeline`, donc refité par fold ;
+les sujets train/val sont disjoints (32 / 8). Le `cv_acc=0.920` contre
+`VAL=0.949` est cohérent (les folds s'entraînent sur 4/5 des sujets, le
+modèle final sur 32). **Le 0,949 n'est pas gonflé par une fuite de réglage.**
+
+**Mais l'audit a trouvé autre chose** : aucun des chiffres « split
+environnement » de la branche Point-MAE n'était reproductible depuis le
+dépôt.
+
+| chiffre publié | script censé le produire | ce que le script faisait |
+|---|---|---|
+| tête linéaire, env : 0,908 ± 0,009 | `entrainer_pointmae_seeds.py` | split sujet seulement |
+| Point-MAE + SVM, env : 0,926 | `tuner_pointmae_classique.py` | split sujet seulement |
+| fusion + Laplacien, env : 0,937 | `tuner_fusion.py` | split sujet seulement |
+
+Seuls `entrainer_laplacien_v4/v5.py` et `entrainer_temporal_jepa.py`
+appelaient `decouper_train_val_environnement()`. Les trois valeurs
+n'existaient qu'en prose dans
+`Tracking/mois/3-septembre/5-recherche_architectures_5sept.txt` (lignes 317,
+388, 620) : calculées par une édition ad hoc, jamais commitée, sans log.
+C'est gênant parce que le split environnement est **le seul protocole
+homogène avec la littérature** (arXiv:2509.23255) — la comparaison « on
+dépasse leurs 81-90% » reposait entièrement sur ces trois chiffres-là.
+
+**Corrigé** : les trois scripts passent maintenant par
+`protocole.evaluer_deux_splits` et produisent systématiquement les deux
+splits. ⚠️ **Les valeurs 0,908 / 0,926 / 0,937 restent à régénérer** (les
+caches `.npz` sont gitignorés, donc l'exécution doit se faire sur la machine
+qui les détient) avant d'être citées ailleurs.
+
+Un changement de comportement à noter : `tuner_fusion.py` utilisait une
+grille SVM plus petite que le reste du projet. Il passe sur `GRILLE_SVM`,
+qui la contient strictement — le `cv_acc` retenu ne peut donc que monter ou
+rester égal, mais le score de validation peut bouger de quelques millièmes.
+
+**Consolidation** : 15 scripts remplacés par 3.
+
+| supprimés | remplacés par |
+|---|---|
+| `diag_combine`, `diag_jrdb`, `diag_vjepa_mirror`, `diag_vjepa_mirror_reg`, `entrainer_combine`, `entrainer_combine_jrdb2x`, `entrainer_vjepa` | `lancer_jepa.py` (presets) |
+| `eval_vjepa`, `eval_finetune_vjepa`, `eval_finetune_combine`, `eval_finetune_seeds`, `eval_finetune_jrdb2x_seeds`, `eval_finetune_jrdb2x_graine2` | `lancer_finetune.py` (presets + `--graines`) |
+| `diag_uniformite_poolee`, `diag_variance_poolee` | `diag_effondrement_poole.py` (`--poids` explicite) |
+
+Chacun n'était qu'un appel à `entrainement.entrainer` ou
+`evaluation.probe_lineaire` avec d'autres arguments, **exécuté à l'import**
+(aucune garde `__main__`) : importer le module lançait un entraînement.
+`tracer_courbes.py` et `tracer_vjepa.py` avaient le même défaut — ils
+réécrivaient leurs PNG à l'import — et sont désormais gardés eux aussi.
+
+En passant, `diag_uniformite_poolee.py` et `diag_variance_poolee.py`
+laissaient tous deux `poids_uniformite_poolee` à sa valeur par défaut (0.0)
+et mesuraient donc un run **sans** régularisation, malgré leurs docstrings.
+Le remplaçant prend le poids en argument explicite.
+
+**Délibérément conservés** : la lignée Laplacien v1/v2/v3 et
+`tuner_laplacien_v2/v3_pca` sont redondantes en apparence, mais elles seules
+régénèrent le tableau d'ablation de la piste B (0,218 → 0,617 → 0,590). Les
+supprimer reproduirait exactement le problème que cette refactorisation
+corrige.
+
 ## Limites connues / points ouverts
 
+- **Les trois chiffres split environnement de la branche Point-MAE
+  (0,908 / 0,926 / 0,937) n'ont pas encore été régénérés** par le code
+  corrigé du 11 septembre — à faire avant toute citation externe.
+- Un seul ensemble de validation a servi à départager tout le projet
+  (tête linéaire vs SVM vs RF vs HGB, puis les 6 add-ins JEPA, puis la
+  fusion) : c'est donc un ensemble de DÉVELOPPEMENT, et 0,954 est une
+  estimation légèrement optimiste. Un test tenu à l'écart reste à faire.
 - z non référencé au sol (pas de calibration scène-vide disponible pour MM-Fi).
 - Nombre de tokens différent entre les deux méthodes (192 vs 512) — assumé,
   pas corrigé (cf. `tokenisation.py` ci-dessus).
@@ -1412,17 +1528,58 @@ méthode points pour ONCE.
 pas depuis `mmfi-src/` — les chemins par défaut (`data/MMFi_lidar_only/...`,
 `mmfi-src/checkpoints_.../`) sont relatifs à la racine.
 
+### Pré-entraînement JEPA
+
 ```bash
-python mmfi-src/entrainement.py grille mmfi   # methode: grille|points -- source: mmfi|jrdb|mmfi_jrdb (once retire, plus de donnees locales)
-python mmfi-src/evaluation.py                 # linear probing, 4 conditions (grille/points x preentraine/aleatoire)
+python mmfi-src/lancer_jepa.py --liste          # presets disponibles
+python mmfi-src/lancer_jepa.py vjepa            # MM-Fi seul, 3000 pas
+python mmfi-src/lancer_jepa.py combine-jrdb2x   # MM-Fi + JRDB x2
+python mmfi-src/entrainement.py grille mmfi     # appel direct, paramétrable
 ```
 
-Nécessite `data/MMFi_lidar_only/` (cf. `Tracking/mois/2-aout/`, sous-ensemble
-lidar+ground_truth extrait du dataset MM-Fi complet) et, pour les sources
-`jrdb`/`mmfi_jrdb`, `D:/jrdb/train/pointclouds/lower_velodyne/` (cf. section
-JRDB — pas de compensation d'ego-mouvement, limite connue). La source `once`
-existe encore dans le code mais le dataset a été supprimé par l'utilisateur
-(plus de données locales). Poids et historique écrits dans
+`entrainement.py` prend `methode` (`grille`|`points`) et `source`
+(`mmfi`|`jrdb`|`mmfi_jrdb`|`mmfi_jrdb2x` ; `once` existe encore dans le code
+mais le dataset a été supprimé de la machine).
+
+### Évaluation en aval des checkpoints JEPA
+
+```bash
+python mmfi-src/lancer_finetune.py --liste
+python mmfi-src/lancer_finetune.py jrdb2x               # 3 graines
+python mmfi-src/lancer_finetune.py jrdb2x --graines 2   # reprise d'une graine
+python mmfi-src/evaluation.py                           # probing, 4 conditions
+```
+
+### Pipelines de features gelées — toujours les DEUX splits
+
+Toutes passent par `protocole.evaluer_deux_splits` : chaque exécution produit
+le split sujet **et** le split environnement.
+
+```bash
+python mmfi-src/extraire_pointmae.py            # cache features_pointmae.npz
+python mmfi-src/entrainer_pointmae_seeds.py     # tête linéaire, 3 graines
+python mmfi-src/tuner_pointmae_classique.py     # SVM/RF/HGB (meilleur simple)
+python mmfi-src/extraire_laplacien_v4.py        # cache features_laplacien_v4_all.npz
+python mmfi-src/entrainer_laplacien_v4.py       # spectre Laplacien
+python mmfi-src/tuner_fusion.py                 # fusion (meilleur absolu)
+```
+
+### Diagnostics
+
+```bash
+python mmfi-src/diag_effondrement_poole.py --poids 1.0
+python mmfi-src/smoke_test_vjepa.py
+python mmfi-src/tracer_courbes.py
+```
+
+### Données requises
+
+`data/MMFi_lidar_only/` (sous-ensemble lidar+ground_truth de MM-Fi, cf.
+`Tracking/mois/2-aout/`) et, pour les sources `jrdb`/`mmfi_jrdb`,
+`D:/jrdb/train/pointclouds/lower_velodyne/`. Poids et historiques écrits dans
 `mmfi-src/checkpoints_{suffixe}/` et
-`mmfi-src/historique_entrainement_{suffixe}.csv` (`suffixe` = `grille`,
-`points`, `jrdb`, ou `mmfi_jrdb`).
+`mmfi-src/historique_entrainement_{suffixe}.csv`.
+
+Les caches de features (`features_*.npz`) sont gitignorés : ils doivent être
+régénérés par les scripts `extraire_*.py` sur la machine qui détient les
+données.

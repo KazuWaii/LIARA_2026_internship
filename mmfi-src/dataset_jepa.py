@@ -14,6 +14,10 @@ import mmfi_dataset as mmfi
 import once_dataset as once
 import jrdb_dataset as jrdb
 import tokenisation as tok
+# Les decoupages train/val MM-Fi vivent dans protocole.py (pur filtrage de
+# listes, aucun besoin de torch) -- re-exportes ici pour les appelants
+# historiques qui font `from dataset_jepa import decouper_train_val`.
+from protocole import decouper_train_val, decouper_train_val_environnement  # noqa: F401
 
 
 class _MMFiFenetreDataset(Dataset):
@@ -158,28 +162,3 @@ def decouper_train_val_jrdb(racine=jrdb.RACINE_PAR_DEFAUT, fraction_val=0.1):
     return scenes[:-nb_val], scenes[-nb_val:]
 
 
-def decouper_train_val(racine=mmfi.RACINE_PAR_DEFAUT, nb_sujets_val=8):
-    """Decoupage par sujet (meme principe que le split cross-subject suggere
-    par le toolbox MM-Fi officiel : sujets disjoints entre train et val)."""
-    sequences = mmfi.lister_sequences(racine)
-    sujets = sorted({s for _, s, _ in sequences})
-    sujets_val = set(sujets[-nb_sujets_val:])
-
-    train = [s for s in sequences if s[1] not in sujets_val]
-    val = [s for s in sequences if s[1] in sujets_val]
-    return train, val
-
-
-def decouper_train_val_environnement(racine=mmfi.RACINE_PAR_DEFAUT, env_val="E04"):
-    """Decoupage par ENVIRONNEMENT -- reproduit exactement le protocole du
-    papier Laplacien (arXiv:2509.23255) : "30 sujets E1-E3 train / 10 sujets
-    E4 val". Verifie (4 septembre) que MM-Fi partitionne deja les 40 sujets
-    par environnement (10 sujets/environnement, aucun chevauchement), donc
-    ce split par environnement EST un split par sujet, en plus d'etre un
-    test de generalisation inter-environnement -- different de
-    decouper_train_val() qui retient les 8 derniers sujets (S33-S40, tous
-    dans E04) plutot que les 10 sujets complets d'un environnement."""
-    sequences = mmfi.lister_sequences(racine)
-    train = [s for s in sequences if s[0] != env_val]
-    val = [s for s in sequences if s[0] == env_val]
-    return train, val

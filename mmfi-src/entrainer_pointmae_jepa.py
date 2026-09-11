@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 from dataset_jepa import decouper_train_val
-from entrainer_laplacien_v4 import _masque
+from protocole import masque_lignes
 from modele_pointmae import charger_poids_pretrain
 from modele_pointmae_jepa import ModelePointMAEJepa
 from perte import perte_uniformite_poolee
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     groupes, centres, y, envs, sujets = data["groupes"], data["centres"], data["y"], data["envs"], data["sujets"]
 
     seq_train, seq_val = decouper_train_val()
-    m_train = _masque(seq_train, envs, sujets)
+    m_train = masque_lignes(seq_train, envs, sujets)
     groupes_train, centres_train = groupes[m_train], centres[m_train]
     print(f"fenetres train: {groupes_train.shape}")
 

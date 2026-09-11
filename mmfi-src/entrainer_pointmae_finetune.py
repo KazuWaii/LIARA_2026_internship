@@ -20,7 +20,7 @@ import torch
 from torch import nn
 
 from dataset_jepa import decouper_train_val
-from entrainer_laplacien_v4 import _masque
+from protocole import masque_lignes
 from modele_pointmae import ModeleClassificationPointMAE, charger_poids_pretrain
 
 CHECKPOINT_PRETRAIN = r"D:\pretrained_checkpoints\point_mae\pretrain.pth"
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     print(f"groupes totaux: {groupes.shape}")
 
     seq_train, seq_val = decouper_train_val()
-    m_train, m_val = _masque(seq_train, envs, sujets), _masque(seq_val, envs, sujets)
+    m_train, m_val = masque_lignes(seq_train, envs, sujets), masque_lignes(seq_val, envs, sujets)
     groupes_train, centres_train, y_train = groupes[m_train], centres[m_train], y[m_train]
     groupes_val, centres_val, y_val = groupes[m_val], centres[m_val], y[m_val]
     print(f"train: {groupes_train.shape}  val: {groupes_val.shape}")
