@@ -229,3 +229,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Donnees locales : dataset MM-Fi LiDAR et caches regeneres par
+# mmfi-transfer-learning.ipynb (isolation, features, tokens, poids fine-tunes)
+data/
+
+# IDE
+.idea/
