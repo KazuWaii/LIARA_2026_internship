@@ -1,0 +1,261 @@
+INSTALLATION ET MISE EN ROUTE DU LIDAR ROBOSENSE AIRY
+Ubuntu 24.04 LTS (noble) - ROS 2 Jazzy - Liaison Ethernet
+Mathieu Bonneau — 2 novembre 2026
+
+Objectif :
+Obtenir les nuages de points de l'Airy dans ROS 2 (RViz2), puis leur
+projection 2D en temps réel (script projection_robosense_airy.py).
+
+Machine utilisée : Dell Inspiron 3501, carte Ethernet enp2s0.
+
+
+============================================================
+1. BRANCHEMENT ET RÉSEAU
+============================================================
+
+- Alimenter l'Airy par son boîtier d'interface.
+- Relier le boîtier au PC par un câble RJ45.
+
+Valeurs réseau d'usine (RoboSense) :
+
+IP du lidar             : 192.168.1.200
+IP du PC (destination)  : 192.168.1.102
+Port MSOP (points)      : 6699
+Port DIFOP (infos)      : 7788
+Port IMU                : 6688
+
+Le lidar envoie ses paquets UDP vers 192.168.1.102 : le PC doit avoir
+exactement cette adresse sur la carte Ethernet.
+
+Trouver le nom de la carte Ethernet :
+
+ip link
+
+Donner l'IP fixe au PC (profil "robosense", carte enp2s0) :
+
+sudo nmcli con add type ethernet ifname enp2s0 con-name robosense ipv4.method manual ipv4.addresses 192.168.1.102/24
+sudo nmcli con up robosense
+
+Erreur rencontrée : "No suitable device found for this connection
+(mismatching interface name)". Le profil avait été créé avec un autre nom
+de carte. Correction :
+
+sudo nmcli con modify robosense connection.interface-name enp2s0
+sudo nmcli con up robosense
+
+Vérifier :
+
+ip addr show enp2s0
+ping -c 4 192.168.1.200
+sudo tcpdump -i enp2s0 -n udp port 6699 -c 10
+
+tcpdump doit afficher des paquets venant de 192.168.1.200.
+
+Attention : si la box Wi-Fi utilise aussi le réseau 192.168.1.x, il y a
+conflit (vérifier avec "ip route"). Couper le Wi-Fi pendant les essais
+(nmcli radio wifi off) ou changer l'IP du lidar.
+
+Interface web du lidar (IP, ports, vitesse de rotation, mode de retour) :
+http://192.168.1.200
+
+
+============================================================
+2. INSTALLER ROS 2 JAZZY
+============================================================
+
+Ubuntu 24.04 (noble) -> ROS 2 Jazzy. Humble n'existe pas pour 24.04 :
+"sudo apt install ros-humble-desktop" donne "Unable to locate package".
+
+Vérifier la version d'Ubuntu :
+
+lsb_release -cs
+
+Résultat attendu : noble
+
+Activer le dépôt Universe :
+
+sudo apt install -y software-properties-common curl
+sudo add-apt-repository universe
+
+Ajouter le dépôt ROS 2 (les trois commandes dans le même terminal) :
+
+export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F'"' '{print $4}')
+
+curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+
+sudo dpkg -i /tmp/ros2-apt-source.deb
+
+Mettre à jour puis installer ROS 2 :
+
+sudo apt update && sudo apt upgrade
+sudo apt install ros-jazzy-desktop ros-dev-tools
+
+Vérifier :
+
+source /opt/ros/jazzy/setup.bash && ros2 run demo_nodes_cpp talker
+
+Activer ROS 2 dans les futurs terminaux :
+
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+
+
+============================================================
+3. INSTALLER LE SDK ROBOSENSE (rslidar_sdk)
+============================================================
+
+Dépendances :
+
+sudo apt install -y libyaml-cpp-dev libpcap-dev
+
+Espace de travail ROS 2 (--recursive récupère aussi rs_driver) :
+
+mkdir -p ~/rslidar_ws/src && cd ~/rslidar_ws/src
+git clone --recursive https://github.com/RoboSense-LiDAR/rslidar_sdk.git
+git clone https://github.com/RoboSense-LiDAR/rslidar_msg.git
+
+Configuration : ~/rslidar_ws/src/rslidar_sdk/config/config.yaml
+(lu directement dans le dossier source : pas besoin de recompiler après
+une modification)
+
+common:
+  msg_source: 1              # 1 = lidar en direct, 3 = fichier pcap
+  send_packet_ros: false     # true pour enregistrer les paquets en rosbag
+  send_point_cloud_ros: true
+lidar:
+  - driver:
+      lidar_type: RSAIRY     # par défaut RSM1 : à changer
+      msop_port: 6699
+      difop_port: 7788
+      imu_port: 0            # 6688 + ENABLE_IMU_DATA_PARSE ON pour l'IMU
+      min_distance: 0.2
+      max_distance: 200
+      use_lidar_clock: true
+    ros:
+      ros_frame_id: rslidar
+      ros_send_point_cloud_topic: /rslidar_points
+
+Champ 'ring' (numéro du laser), nécessaire pour la projection exacte
+(laser, azimut) et pour le SLAM : passer POINT_TYPE à XYZIRT.
+
+sed -i 's/set(POINT_TYPE XYZI)/set(POINT_TYPE XYZIRT)/' ~/rslidar_ws/src/rslidar_sdk/CMakeLists.txt
+
+Compiler :
+
+cd ~/rslidar_ws && source /opt/ros/jazzy/setup.bash && colcon build
+
+Le SDK n'est testé officiellement que jusqu'à Humble et impose C++14. Si
+colcon build échoue avec une erreur sur C++17 (std::optional,
+if constexpr), passer en C++17 puis recompiler :
+
+sed -i 's/set(CMAKE_CXX_STANDARD 14)/set(CMAKE_CXX_STANDARD 17)/' ~/rslidar_ws/src/rslidar_sdk/CMakeLists.txt
+
+
+============================================================
+4. FLUIDITÉ : FAST DDS EN MODE LARGE_DATA
+============================================================
+
+Problème : saccades dans la projection (et RViz). Un nuage de l'Airy pèse
+environ 2 Mo à 10 Hz ; avec la configuration par défaut de Fast DDS
+(middleware de ROS 2 Jazzy), des nuages sont perdus avant d'arriver aux
+nœuds abonnés.
+
+Solution : mode LARGE_DATA de Fast DDS, à activer dans TOUS les terminaux
+ROS 2 (driver, RViz, script). Une fois pour toutes :
+
+echo "export FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA" >> ~/.bashrc
+
+Puis ouvrir un nouveau terminal. Tous les nœuds qui échangent des données
+doivent avoir le même réglage.
+
+Résultat : projection fluide, sans saccades.
+
+
+============================================================
+5. LANCEMENT
+============================================================
+
+Terminal 1 - driver + RViz2 :
+
+source /opt/ros/jazzy/setup.bash && source ~/rslidar_ws/install/setup.bash && ros2 launch rslidar_sdk start.py
+
+Terminal 2 - projection 2D :
+
+cd ~/LIARA_2026_internship/lidar-src/lidar-exploration/data_projection
+bash launch-projection-airy
+
+Arrêt : Ctrl+C dans chaque terminal, ou fermer la fenêtre de projection.
+
+Si rien n'arrive : sudo nmcli con up robosense
+
+
+============================================================
+6. PROJECTION 2D (projection_robosense_airy.py)
+============================================================
+
+Méthode : projection sphérique (Milioto et al. 2019, RangeNet++), comme
+pour le Unitree L2.
+
+- Colonne = angle horizontal : u = floor(0.5 * (yaw / pi + 1) * 900),
+  yaw = -atan2(y, x). L'avant du lidar est au centre de l'image.
+  900 colonnes = 0,4 degré, la résolution native de l'Airy à 10 Hz.
+- Ligne = numéro du laser : v = 95 - ring (rs_driver numérote les lasers
+  par angle vertical croissant). Sans 'ring' : angle vertical ramené dans
+  le champ de vision (FOV_BAS_DEGRES / FOV_HAUT_DEGRES).
+- Plusieurs points dans un pixel : le plus proche est gardé (z-buffer).
+- Pas d'accumulation : contrairement au Unitree L2, un message de l'Airy
+  est déjà un tour complet à 360 degrés.
+
+Sortie : tenseur (6, 96, 900), canaux distance, x, y, z, intensité,
+validité (cf. 2-aout/5-representation_finale_projection_recentrage.txt).
+Pixel vide = 0 partout, validité = 0. Recentrage non inclus. La première
+image est enregistrée dans image_airy.npy.
+
+Fluidité côté script :
+- réception ROS 2 dans un fil séparé qui ne garde que le dernier nuage
+  (pas de retard qui s'accumule) ;
+- seules les deux images sont redessinées (blitting) : ~30 ms au lieu de
+  ~190 ms pour un redessin complet de la fenêtre Matplotlib.
+
+Ligne d'état (une par seconde), exemple :
+Recus : 10.0 Hz | Affiches : 10.0 Hz | Projection : 17 ms | Affichage : 33 ms
+
+- "Recus" sous 10 Hz : nuages perdus par ROS 2 -> LARGE_DATA (partie 4).
+- "Recus" à 10 Hz mais "Affiches" plus bas : le PC ne suit pas -> réduire
+  LARGEUR ou la taille de la fenêtre.
+
+Réglages en haut du script :
+- DISTANCE_MAX = 5.0 m (portée de l'Airy : 60 m) ;
+- HAUTEUR = 96 (48 ou 192 selon le modèle d'Airy) ;
+- FOV_BAS_DEGRES / FOV_HAUT_DEGRES : utilisés seulement sans 'ring'.
+
+
+============================================================
+7. DÉPANNAGE
+============================================================
+
+Pas de paquets dans tcpdump
+-> IP du PC différente de 192.168.1.102, câble, alimentation.
+
+Paquets reçus mais rien dans RViz / le script
+-> mauvais port ou mauvais lidar_type dans config.yaml, pare-feu
+   (sudo ufw allow 6699,7788,6688/udp).
+
+RViz vide
+-> Fixed Frame = rslidar, topic /rslidar_points.
+
+Erreur au chargement de config.yaml
+-> indentation du fichier YAML.
+
+Nuage incomplet
+-> sudo bash -c "echo 851968 > /proc/sys/net/core/rmem_max"
+
+
+============================================================
+RÉFÉRENCES
+============================================================
+
+https://github.com/RoboSense-LiDAR/rslidar_sdk
+https://github.com/RoboSense-LiDAR/rs_driver
+https://github.com/RoboSense-LiDAR/rslidar_msg
+Documentation ROS 2 Jazzy, installation Ubuntu (paquets deb)
+Fast DDS 2.14, variable FASTDDS_BUILTIN_TRANSPORTS
