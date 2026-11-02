@@ -239,3 +239,7 @@ data/
 
 # Fichiers de verrouillage Office
 ~$*
+
+# LiveHPS (clone local, cf. data_squelette) et ses poids
+third_party/LiveHPS/
+lidar-src/lidar-exploration/data_squelette/poids/

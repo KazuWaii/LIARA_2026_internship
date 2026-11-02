@@ -1,0 +1,206 @@
+SQUELETTISATION 3D TEMPS RÉEL AVEC LE ROBOSENSE AIRY
+Mathieu Bonneau — 2 novembre 2026
+
+Objectif :
+Obtenir en temps réel le squelette 3D (articulations nommées) d'une personne
+vue par l'Airy, pour alimenter la reconnaissance d'action (cf. ST-GCN
+"plafond squelette" à 0,994 sur MM-Fi, 3-septembre/5-recherche_architectures).
+
+Réponse courte : oui, c'est possible avec un LiDAR seul. Méthode retenue :
+LiveHPS (CVPR 2024), script lidar-src/lidar-exploration/data_squelette/
+squelette_robosense_airy.py.
+
+
+============================================================
+1. RECHERCHE : MÉTHODES LIDAR SEUL
+============================================================
+
+Point de départ : la revue de Galaaoui et al. (Valeo, 2025, arXiv
+2509.12197) et sa liste de papiers (github.com/valeoai/
+3D-Human-Pose-Shape-Estimation-from-LiDAR). Dans son tableau comparatif, les
+méthodes LiDAR seul marquées "temps réel" sont : LiveHPS, LiveHPS++,
+LidPose, LiDAR-HMP.
+
+Candidats examinés :
+
+- DAPT (AAAI 2025, github.com/AnxQ/dapt, Apache-2.0) : meilleurs résultats
+  sur Waymo / SLOPER4D / LiDARHuman26M, pré-entraînement sur des humains
+  LiDAR synthétiques (robuste à la densité), poids publics. MAIS backbone
+  Point Transformer V3 + flash-attention + spconv : GPU NVIDIA (CUDA)
+  obligatoire, temps réel non annoncé. -> piste pour plus tard si GPU.
+
+- LiveHPS (CVPR 2024 Highlight, github.com/4DVLab/LiveHPS, MIT) : LiDAR
+  seul, temps réel, code ET poids publics, PyTorch pur (PointNet + GRU +
+  transformers) donc utilisable sur CPU. Entraîné sur FreeMotion (scènes
+  intérieures et extérieures, plusieurs LiDAR et points de vue). Entrée :
+  256 points de la personne, centrés, sur 32 images. Sortie : 24
+  articulations SMPL (+ paramètres SMPL, non utilisés ici). -> RETENU.
+
+- LiveHPS++ (ECCV 2024) : seul le chargeur de données NoiseMotion est
+  publié, pas le modèle.
+
+- LidPose (Sensors 2024) : temps réel, mais pour LiDAR à balayage non
+  répétitif (Livox), code non trouvé.
+
+- Projection 2D + estimateur de pose image (type ViTPose sur l'image
+  d'intensité) : écarté, 96 lignes c'est trop peu pour un modèle entraîné
+  sur des photos, et aucune source ne le fait.
+
+- Squelettisation géométrique (squelette de courbe par amincissement ou
+  contraction) : rapide, mais ne donne pas d'articulations nommées, donc
+  inutilisable pour un ST-GCN.
+
+Dépôt LIARA-Preprocessing (flavEPITA) : privé, pas accessible depuis la
+session de travail, la squelettisation utilisée n'a pas pu être comparée.
+
+
+============================================================
+2. PIPELINE (squelette_robosense_airy.py)
+============================================================
+
+Pour chaque nuage /rslidar_points :
+
+1. Soustraction de fond. Au démarrage, capture de la scène vide (30
+   images) : distance de fond par pixel (laser x azimut, même grille que
+   la projection 2D), médiane sur les images. Un point est au premier plan
+   s'il est plus proche que le fond d'au moins 20 cm (MARGE_FOND). Le fond
+   est comparé au minimum des 8 pixels voisins pour éviter les faux
+   premiers plans aux bords des objets. La scène vide est enregistrée dans
+   fond_airy.npz et rechargée aux lancements suivants.
+
+2. Sol. Dans la scène vide, RANSAC sur les plans presque horizontaux qui
+   ont presque tous les points au-dessus d'eux. Le sol corrige
+   l'inclinaison du lidar (le réseau attend z vers le haut) et donne la
+   hauteur du lidar (z_sol, utile au recentrage de la note
+   2-aout/5-representation_finale_projection_recentrage.txt).
+
+3. Segmentation. Points du premier plan regroupés par voxels de 5 cm
+   reliés à moins de 20 cm (composantes connexes). Groupes gardés : au
+   moins 60 points, 0,3 à 2,4 m de haut, moins de 1,6 m de large. Choix :
+   le groupe le plus proche de la personne de l'image précédente (suivi),
+   sinon le plus gros.
+
+4. Réseau. Points de la personne centrés, réduits à 256 points par
+   échantillonnage du point le plus éloigné (comme à l'entraînement),
+   fenêtre glissante des 32 dernières images. Les caractéristiques PointNet
+   de chaque image sont gardées : seule la nouvelle image passe dans
+   PointNet. Le squelette de l'image la plus récente est relatif au bassin,
+   placé à la position du bassin estimée par le réseau.
+
+5. Sorties.
+   - /squelette/marqueurs (MarkerArray) : articulations et os dans RViz ;
+   - /squelette/personne (PointCloud2) : points de la personne segmentée ;
+   - squelettes_airy_<date>.npz à la fermeture : articulations (T,24,3)
+     en repère z vers le haut (origine au lidar), temps, noms, os,
+     rotation, hauteur du sol.
+
+Fluidité : même architecture que la projection 2D (réception ROS 2 dans un
+fil séparé qui ne garde que le dernier nuage, ligne d'état par seconde).
+
+
+============================================================
+3. INSTALLATION (une fois)
+============================================================
+
+Code LiveHPS (non copié dans le dépôt, ignoré par git) :
+
+cd ~/LIARA_2026_internship
+git clone https://github.com/4DVLab/LiveHPS.git third_party/LiveHPS
+
+Poids pré-entraînés : télécharger livehps.t7 depuis le Google Drive du
+projet (lien "pretrained model" du README LiveHPS) :
+https://drive.google.com/drive/folders/1BRpczJHyzte4NNTrTZVHzU6MZu4hTbAz
+et le placer ici :
+
+mkdir -p ~/LIARA_2026_internship/lidar-src/lidar-exploration/data_squelette/poids
+(puis déplacer livehps.t7 dans ce dossier)
+
+Environnement Python (Ubuntu 24.04 interdit pip hors environnement
+virtuel ; --system-site-packages garde numpy et ROS 2 visibles) :
+
+sudo apt install -y python3-venv python3-scipy
+python3 -m venv --system-site-packages ~/venv_squelette
+source ~/venv_squelette/bin/activate
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+(PC avec GPU NVIDIA : "pip install torch torchvision" à la place, le
+script utilise alors le GPU automatiquement.)
+
+
+============================================================
+4. LANCEMENT
+============================================================
+
+Terminal 1 - driver + RViz :
+
+source /opt/ros/jazzy/setup.bash && source ~/rslidar_ws/install/setup.bash && ros2 launch rslidar_sdk start.py
+
+Terminal 2 - squelette :
+
+cd ~/LIARA_2026_internship/lidar-src/lidar-exploration/data_squelette
+bash launch-squelette-airy
+
+Au premier lancement : sortir du champ du lidar pendant la capture de la
+scène vide (5 s d'attente puis 3 s de capture). Relancer avec
+"bash launch-squelette-airy --nouveau-fond" si le lidar ou le décor bouge.
+
+Dans RViz : Add -> By topic -> /squelette/marqueurs (MarkerArray) et
+/squelette/personne (PointCloud2). Fixed Frame : rslidar.
+
+Ligne d'état (une par seconde), format :
+Recus : xx Hz | Squelettes : xx Hz | Personne : xxxx pts | Segmentation : xx ms | Reseau : xx ms
+
+- "Squelettes" à 0 avec "Personne : 0 pts" : personne non segmentée
+  (voir réglages : MARGE_FOND, POINTS_MIN_PERSONNE, HAUTEUR_PERSONNE).
+- "Reseau" au-dessus de 100 ms : le PC ne suit pas 10 Hz ; des images
+  sont sautées (pas de retard accumulé). Réduire FENETRE (ex. 16).
+
+
+============================================================
+5. RÉGLAGES (en haut du script)
+============================================================
+
+- ROTATION_CAPTEUR_DEG : orientation de montage si l'Airy n'est pas posé à
+  plat (ex. monté de côté). Le sol corrige ensuite jusqu'à 25 degrés.
+  Après un changement : relancer avec --nouveau-fond (la rotation est
+  enregistrée avec la scène vide).
+- MARGE_FOND (0,20 m), DISTANCE_MAX_PERSONNE (8 m).
+- POINTS_MIN_PERSONNE, HAUTEUR_PERSONNE, LARGEUR_MAX_PERSONNE : filtres de
+  taille humaine.
+- FENETRE (32) : nombre d'images vues par le réseau.
+
+
+============================================================
+6. LIMITES ET POINTS À VÉRIFIER
+============================================================
+
+- Poids réels non testés pendant le développement (Google Drive
+  inaccessible depuis l'environnement de développement) : le code a été
+  vérifié avec des poids aléatoires (identique au modèle LiveHPS d'origine
+  à 1e-4 près) et sur une scène synthétique. Premier test réel à faire.
+- Repère : le réseau attend z vers le haut (déduit du code
+  d'entraînement, qui fait tourner les vues autour de z). À vérifier dans
+  RViz : un squelette couché ou à l'envers signifie un mauvais
+  ROTATION_CAPTEUR_DEG.
+- Champ de vision : si l'Airy ne voit que l'hémisphère au-dessus de lui,
+  les jambes sous la hauteur du lidar ne sont pas vues. Le monter en
+  hauteur ou de côté pour voir la personne entière.
+- Une seule personne suivie.
+- Écart de domaine : LiveHPS est entraîné sur d'autres LiDAR ; les 256
+  points centrés limitent l'effet de la densité, mais la précision sur
+  l'Airy reste à mesurer.
+- Format : 24 articulations SMPL, alors que MM-Fi (et le ST-GCN) utilisent
+  17 articulations. Une correspondance SMPL -> 17 sera nécessaire.
+
+
+============================================================
+SOURCES
+============================================================
+
+Galaaoui et al., 3D Human Pose and Shape Estimation from LiDAR Point
+Clouds: A Review, arXiv 2509.12197 (2025)
+https://github.com/valeoai/3D-Human-Pose-Shape-Estimation-from-LiDAR
+Ren et al., LiveHPS, CVPR 2024 - https://github.com/4DVLab/LiveHPS
+Ren et al., LiveHPS++, ECCV 2024 - https://github.com/4DVLab/LiveHPS2
+An et al., DAPT, AAAI 2025 - https://github.com/AnxQ/dapt
+LidPose, Sensors 2024, 24(11), 3427

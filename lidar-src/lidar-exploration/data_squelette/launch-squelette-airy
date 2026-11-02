@@ -1,0 +1,4 @@
+export FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA
+source /opt/ros/jazzy/setup.bash
+source ~/venv_squelette/bin/activate
+python3 squelette_robosense_airy.py "$@"
