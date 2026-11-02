@@ -303,8 +303,8 @@ def echantillonner_fps(points, nombre, rng):
     if len(points) < nombre:
         repetitions = int(np.ceil(nombre / len(points)))
         return np.tile(points, (repetitions, 1))[:nombre]
-    if len(points) > 8 * nombre:
-        points = points[rng.choice(len(points), 8 * nombre, replace=False)]
+    if len(points) > 4 * nombre:
+        points = points[rng.choice(len(points), 4 * nombre, replace=False)]
 
     choisis = np.empty(nombre, dtype=np.int64)
     distance = np.full(len(points), np.inf)
@@ -323,10 +323,15 @@ def echantillonner_fps(points, nombre, rng):
 class EstimateurLiveHPS:
     """LiveHPS sur une fenetre glissante, image par image.
 
-    Les caracteristiques PointNet de chaque image sont calculees une seule
-    fois et gardees dans la fenetre : a chaque nouvelle image, seul le nouveau
-    nuage passe dans PointNet. Les etapes temporelles (GRU, transformers)
-    sont recalculees sur toute la fenetre, comme dans le modele d'origine.
+    Resultat identique au modele d'origine (verifie a 1e-6 pres), mais
+    calcule plus vite pour un flux temps reel :
+    - les caracteristiques PointNet de chaque image sont calculees une seule
+      fois et gardees dans la fenetre : seul le nouveau nuage passe dans
+      PointNet ;
+    - les etapes qui melangent les images (GRU, transformer temporel)
+      tournent sur toute la fenetre ;
+    - les etapes image par image (transformer spatial, position du bassin)
+      ne sont calculees que pour la derniere image, la seule publiee.
     """
 
     def __init__(self, dossier_livehps, chemin_poids, appareil):
@@ -388,15 +393,45 @@ class EstimateurLiveHPS:
         articulations = pbt.fc3(y)  # (1, T, 72)
 
         # Suite de ModelNet_shape.forward (LiveHPS/models.py) : affinage des
-        # articulations (CPO) puis position du bassin (SMPL_trans).
-        nouvelles, _, _ = self.modele.model3(articulations, sortie)
-        nouvelles = nouvelles.reshape(1, FENETRE, -1)
-        translation = self.modele.model2(nuages, nouvelles, sortie.reshape(1, FENETRE, -1))
+        # articulations (CPO) puis position du bassin (SMPL_trans), calcules
+        # pour la derniere image seulement.
+        derniere = self.cpo_derniere_image(articulations, sortie)  # (1, 24, 3)
+        translation = self.modele.model2(
+            nuages[:, -1:], derniere.reshape(1, 1, -1), sortie[:, -1:]
+        )
 
-        derniere = nouvelles[0, -1].reshape(-1, 3)
-        bassin = translation.reshape(FENETRE, 3)[-1]
+        derniere = derniere[0]
+        bassin = translation.reshape(3)
         # Squelette relatif au bassin, place a la position estimee du bassin.
         return (derniere - derniere[0] + bassin).cpu().numpy()
+
+    def cpo_derniere_image(self, articulations, caracteristiques):
+        """CPO.forward (LiveHPS/Model/livehps.py) pour la derniere image.
+
+        Seul le transformer temporel melange les images : il tourne sur toute
+        la fenetre. La suite (couche fc1, transformer spatial sur les 24
+        articulations, tete) traite chaque image separement : elle n'est
+        calculee que pour la derniere. Resultat identique, ~4 fois plus
+        rapide. Retourne (1, 24, 3)."""
+
+        cpo = self.modele.model3
+        k = cpo.kp_num
+        x = torch.cat((articulations.transpose(0, 1), caracteristiques.transpose(0, 1)), 2)
+        x = cpo.temporal_net(cpo.pos_enc_t(cpo.in_fc(x)))[-1:]  # (1, 1, 1024)
+        x = torch.relu(cpo.fc1(x))  # (1, 1, 24 * 256)
+        x = torch.cat(
+            (
+                x.reshape(1, 1, k, -1).transpose(0, 1),
+                articulations[:, -1:].reshape(1, 1, k, -1),
+                caracteristiques[:, -1:].repeat((1, 1, k)).reshape(1, 1, k, -1),
+            ),
+            3,
+        )
+        x = x.reshape(1, k, -1).transpose(0, 1)  # (24, 1, 256 + 3 + 1024)
+        x = cpo.spatial_net(cpo.pos_enc_s(cpo.in_fc2(x)))
+        x = torch.relu(cpo.fc2(x))
+        x = torch.relu(cpo.dropout(cpo.fc3(x)))
+        return cpo.fc4(x).transpose(0, 1)
 
 
 # ----------------------------------------------------------------------

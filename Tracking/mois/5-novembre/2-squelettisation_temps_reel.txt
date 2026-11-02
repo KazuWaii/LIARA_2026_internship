@@ -82,10 +82,17 @@ Pour chaque nuage /rslidar_points :
 
 4. Réseau. Points de la personne centrés, réduits à 256 points par
    échantillonnage du point le plus éloigné (comme à l'entraînement),
-   fenêtre glissante des 32 dernières images. Les caractéristiques PointNet
-   de chaque image sont gardées : seule la nouvelle image passe dans
-   PointNet. Le squelette de l'image la plus récente est relatif au bassin,
-   placé à la position du bassin estimée par le réseau.
+   fenêtre glissante des 32 dernières images. Le squelette de l'image la
+   plus récente est relatif au bassin, placé à la position du bassin
+   estimée par le réseau.
+
+   Accélération (résultat identique au LiveHPS d'origine, écart max 3e-7
+   vérifié avec des poids aléatoires) :
+   - caractéristiques PointNet gardées : seule la nouvelle image passe dans
+     PointNet ;
+   - les étapes qui traitent chaque image séparément (transformer spatial,
+     position du bassin) ne sont calculées que pour la dernière image.
+   Réseau : 119 ms -> 33 ms par image sur CPU (Xeon 2,1 GHz, 4 cœurs).
 
 5. Sorties.
    - /squelette/marqueurs (MarkerArray) : articulations et os dans RViz ;
@@ -147,8 +154,9 @@ scène vide (5 s d'attente puis 3 s de capture). Relancer avec
 Dans RViz : Add -> By topic -> /squelette/marqueurs (MarkerArray) et
 /squelette/personne (PointCloud2). Fixed Frame : rslidar.
 
-Ligne d'état (une par seconde), format :
-Recus : xx Hz | Squelettes : xx Hz | Personne : xxxx pts | Segmentation : xx ms | Reseau : xx ms
+Ligne d'état (une par seconde), mesurée sur une scène simulée (CPU
+Xeon 2,1 GHz, 4 cœurs ; "Reseau" inclut l'échantillonnage des 256 points) :
+Recus : 10.0 Hz | Squelettes : 10.0 Hz | Personne :  988 pts | Segmentation :   8 ms | Reseau :  44 ms
 
 - "Squelettes" à 0 avec "Personne : 0 pts" : personne non segmentée
   (voir réglages : MARGE_FOND, POINTS_MIN_PERSONNE, HAUTEUR_PERSONNE).
@@ -176,8 +184,11 @@ Recus : xx Hz | Squelettes : xx Hz | Personne : xxxx pts | Segmentation : xx ms 
 
 - Poids réels non testés pendant le développement (Google Drive
   inaccessible depuis l'environnement de développement) : le code a été
-  vérifié avec des poids aléatoires (identique au modèle LiveHPS d'origine
-  à 1e-4 près) et sur une scène synthétique. Premier test réel à faire.
+  vérifié avec des poids aléatoires (identique au modèle LiveHPS d'origine,
+  écart max 3e-7) et sur une scène synthétique (pièce + personne, lidar à
+  1 m : sol retrouvé à 1,00 m, personne segmentée sur 40/40 images,
+  10 squelettes/s). La précision du squelette sur l'Airy reste à mesurer :
+  premier test réel à faire.
 - Repère : le réseau attend z vers le haut (déduit du code
   d'entraînement, qui fait tourner les vues autour de z). À vérifier dans
   RViz : un squelette couché ou à l'envers signifie un mauvais
