@@ -1,0 +1,2 @@
+source /opt/ros/jazzy/setup.bash
+python3 projection_robosense_airy.py
