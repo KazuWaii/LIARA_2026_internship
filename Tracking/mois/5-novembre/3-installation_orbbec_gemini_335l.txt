@@ -56,6 +56,13 @@ Trouver où se trouve Orbbec Viewer, puis le lancer :
 
 dpkg -L orbbecsdk | grep -i OrbbecViewer
 
+Installé ici avec la v2.8.7 : le paquet .deb installe aussi les règles udev
+(/etc/udev/rules.d/99-obsensor-libusb.rules). Recharger les règles,
+rebrancher la caméra, puis lancer le Viewer (sans sudo) :
+
+sudo udevadm control --reload-rules && sudo udevadm trigger
+/opt/OrbbecSDK_v2.8.7/tools/OrbbecViewer
+
 Dans Orbbec Viewer :
 - vérifier que la caméra apparaît en haut à gauche ;
 - afficher la profondeur, la couleur et le nuage de points (vue 3D) ;
