@@ -1,0 +1,182 @@
+INSTALLATION ET MISE EN ROUTE DE LA CAMÉRA ORBBEC GEMINI 335L
+Ubuntu 24.04 LTS (noble) - ROS 2 Jazzy - Liaison USB 3
+Mathieu Bonneau — 3 novembre 2026
+
+Objectif :
+Obtenir les nuages de points du Gemini 335L dans ROS 2 (RViz2), comme pour
+l'Airy (cf. 1-installation_robosense_airy.txt).
+
+Nature du capteur : le Gemini 335L n'est pas un lidar mais une caméra de
+profondeur stéréo active (deux caméras infrarouges + projecteur de motif)
+avec une caméra couleur (RGB). Conséquences :
+- branchement USB 3 (USB-C), pas de configuration réseau ;
+- l'image de profondeur est déjà une image 2D (pas de projection sphérique
+  à faire) ;
+- il y a une image couleur, alignable sur la profondeur.
+
+Caractéristiques (fiche Orbbec) :
+- profondeur : 0,17 m à 20 m et plus, plage optimale jusqu'à 6 m (à
+  partir de 0,25 ou 0,5 m selon les fiches Orbbec) ;
+- champ de vision profondeur : 90° x 65°, jusqu'à 1280x800 à 30 i/s ;
+- couleur : 94° x 68°, jusqu'à 1280x800 ;
+- base stéréo : 95 mm (le "L" = longue base, meilleure précision au loin).
+
+
+============================================================
+1. BRANCHEMENT
+============================================================
+
+- Brancher la caméra avec son câble USB-C sur un port USB 3 du PC (port
+  bleu ou marqué SS). En USB 2, certaines résolutions ne sont pas
+  disponibles et le débit chute.
+
+Vérifier que la caméra est vue :
+
+lsusb | grep -i orbbec
+lsusb -t
+
+Dans "lsusb -t", la ligne de la caméra doit indiquer 5000M (USB 3) et non
+480M (USB 2).
+
+
+============================================================
+2. LOGICIEL DE VISUALISATION : ORBBEC VIEWER
+============================================================
+
+Télécharger le paquet OrbbecSDK_v2.x.x_amd64.deb (SDK + Orbbec Viewer)
+depuis : https://github.com/orbbec/OrbbecSDK_v2/releases
+(dernière version au 3 novembre 2026 : v2.10.6)
+
+Installer :
+
+cd ~/Téléchargements
+sudo dpkg -i OrbbecSDK_v2.*_amd64.deb
+
+Trouver où se trouve Orbbec Viewer, puis le lancer :
+
+dpkg -L orbbecsdk | grep -i OrbbecViewer
+
+Dans Orbbec Viewer :
+- vérifier que la caméra apparaît en haut à gauche ;
+- afficher la profondeur, la couleur et le nuage de points (vue 3D) ;
+- icône en bas à gauche : informations de l'appareil et mise à jour du
+  firmware (firmware Gemini 330 :
+  https://www.orbbec.com/docs/g330-firmware-release/).
+
+Si la fenêtre de choix du fichier firmware ne s'ouvre pas :
+
+sudo apt install zenity
+
+
+============================================================
+3. DRIVER ROS 2 (orbbec_camera, paquet apt Jazzy)
+============================================================
+
+Le driver OrbbecSDK_ROS2 v2 (branche v2-main) est publié en paquet binaire
+pour Jazzy (version 2.10.6 dans rosdistro) : pas besoin de compiler.
+
+sudo apt update
+sudo apt install ros-jazzy-orbbec-camera ros-jazzy-orbbec-description
+
+Règles udev (OBLIGATOIRE, sinon la caméra ne s'ouvre qu'avec sudo) :
+
+sudo cp /opt/ros/jazzy/share/orbbec_camera/udev/99-obsensor-libusb.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules && sudo udevadm trigger
+
+Puis débrancher et rebrancher la caméra.
+
+Si "Unable to locate package ros-jazzy-orbbec-camera" : compilation depuis
+les sources.
+
+sudo apt install libgflags-dev nlohmann-json3-dev ros-jazzy-image-transport ros-jazzy-image-transport-plugins ros-jazzy-compressed-image-transport ros-jazzy-image-publisher ros-jazzy-camera-info-manager ros-jazzy-diagnostic-updater ros-jazzy-diagnostic-msgs ros-jazzy-statistics-msgs ros-jazzy-xacro ros-jazzy-backward-ros libdw-dev libssl-dev mesa-utils libgl1 libgoogle-glog-dev
+mkdir -p ~/orbbec_ws/src && cd ~/orbbec_ws/src
+git clone -b v2-main https://github.com/orbbec/OrbbecSDK_ROS2.git
+cd ~/orbbec_ws && source /opt/ros/jazzy/setup.bash && colcon build --event-handlers console_direct+ --cmake-args -DCMAKE_BUILD_TYPE=Release
+cd ~/orbbec_ws/src/OrbbecSDK_ROS2/orbbec_camera/scripts && sudo bash install_udev_rules.sh
+sudo udevadm control --reload-rules && sudo udevadm trigger
+
+(puis "source ~/orbbec_ws/install/setup.bash" dans chaque terminal)
+
+
+============================================================
+4. OBTENIR LE NUAGE DE POINTS
+============================================================
+
+Vérifier la caméra, puis lister ses résolutions disponibles :
+
+source /opt/ros/jazzy/setup.bash
+ros2 run orbbec_camera list_devices_node
+ros2 run orbbec_camera list_camera_profile_mode_node
+
+Lancer la caméra (le nuage de points est activé par défaut) :
+
+ros2 launch orbbec_camera gemini_330_series.launch.py
+
+Nuage de points coloré (profondeur alignée sur la couleur) :
+
+ros2 launch orbbec_camera gemini_330_series.launch.py enable_colored_point_cloud:=true
+
+Visualiser dans RViz2 (autre terminal) :
+
+source /opt/ros/jazzy/setup.bash && rviz2
+
+- Fixed Frame : camera_link
+- Add -> PointCloud2 : /camera/depth/points
+  (coloré : /camera/depth_registered/points)
+- Add -> Image : /camera/color/image_raw et /camera/depth/image_raw
+
+Topics utiles : /camera/depth/image_raw, /camera/color/image_raw,
+/camera/depth/camera_info, /camera/depth/points.
+
+
+============================================================
+5. FLUIDITÉ
+============================================================
+
+Un nuage 1280x800 contient ~1 million de points : beaucoup plus lourd que
+l'Airy (~86 000 points). Le mode LARGE_DATA de Fast DDS (cf.
+1-installation_robosense_airy.txt, partie 4) est d'autant plus
+nécessaire :
+
+export FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA
+
+Si ça saccade encore :
+- réduire le nuage : point_cloud_decimation_filter_factor:=2 (ou 4) ;
+- baisser la résolution de profondeur avec depth_width, depth_height et
+  depth_fps, en choisissant une combinaison listée par
+  list_camera_profile_mode_node ;
+- augmenter la mémoire USB (images perdues sur le port USB) :
+  echo 128 | sudo tee /sys/module/usbcore/parameters/usbfs_memory_mb
+
+Exemple :
+
+ros2 launch orbbec_camera gemini_330_series.launch.py point_cloud_decimation_filter_factor:=2
+
+
+============================================================
+6. DÉPANNAGE
+============================================================
+
+list_devices_node ne trouve rien
+-> câble, port USB 3, règles udev installées puis caméra rebranchée.
+
+Erreur de permission à l'ouverture
+-> règles udev (partie 3).
+
+Peu d'images par seconde
+-> port USB 2 (lsusb -t), résolution trop haute, usbfs_memory_mb.
+   Mesurer avec RViz2 plutôt que "ros2 topic hz" (qui ne suit pas les
+   gros messages).
+
+Firmware ancien
+-> mise à jour dans Orbbec Viewer (partie 2).
+
+
+============================================================
+RÉFÉRENCES
+============================================================
+
+https://github.com/orbbec/OrbbecSDK_ROS2 (branche v2-main)
+https://orbbec.github.io/OrbbecSDK_ROS2/ (documentation du driver)
+https://github.com/orbbec/OrbbecSDK_v2 (SDK et Orbbec Viewer)
+https://www.orbbec.com/products/stereo-vision-camera/gemini-335l/
